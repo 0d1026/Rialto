@@ -28,13 +28,12 @@ signed recipient.
 
 - **Single use** comes free from Soroban's protocol-level auth-entry nonce - consumed
   on-chain when used, no contract storage needed (and therefore no rent/TTL management).
-- **Deadline** is a signed clock-time the contract checks on-chain; the auth entry's own
-  `signatureExpirationLedger` is a second, independent bound that must be padded to
-  outlive it.
-- **`validAfter`** has no native Soroban primitive, so it is a signed argument the
-  contract checks against the ledger's clock time (as is `deadline`) - keeping both time
-  bounds under the client's signature rather than downgrading the start bound to
-  off-chain policy.
+- **Expiry** is a single client-chosen, signed `expirationLedger` (ledger sequence)
+  checked by the contract - the same signed value feeds the token approval's expiry, so
+  no timestamp-to-ledger conversion exists to mismatch the pre-signed arguments.
+- **`validAfter`** has no native Soroban primitive, so it is a signed clock-time
+  argument the contract checks against the ledger timestamp - a real "not before" bound
+  under the client's signature rather than off-chain policy.
 - **Zero usage ⇒ no transaction**; the authorization simply expires.
 
 ## Alternatives considered
@@ -64,7 +63,6 @@ as well.
   `__check_auth` policy can inspect exactly what the client signs (token, max, recipient),
   so per-request caps (this contract) compose with per-agent budgets (account policies).
 - We author `scheme_upto_stellar.md` and contribute it upstream, coordinating with the
-  authors already active in #71/#72. Working draft:
-  [upto scheme spec for Stellar](https://gist.github.com/Iam0TI/1bab9ffc1c0e619ba762116f2af9141c)
-  (mechanics accepted; two review fixes pending - client-signed allowance expiry,
-  required salt).
+  authors already active in #71/#72. The spec lives in this repo:
+  [`docs/scheme_upto_stellar.md`](../scheme_upto_stellar.md) (both review fixes applied -
+  client-signed `expirationLedger` as the single expiry, required `salt`).

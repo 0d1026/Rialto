@@ -4,8 +4,8 @@ Status: draft for team review (branch `architecture`).
 Everything in this document is grounded in one of: the x402 specs as merged upstream, the
 `@x402/stellar` package as published (v2.21.0), SDF's reference implementation, our own
 settled testnet runs, or an accepted design decision in `docs/decisions/`. The contract
-research spike has landed ([spec draft](https://gist.github.com/Iam0TI/1bab9ffc1c0e619ba762116f2af9141c));
-§3.3 reflects its design plus the two fixes proposed in review.
+research spike has landed as a full spec in this repo
+([`docs/scheme_upto_stellar.md`](scheme_upto_stellar.md)); §3.3 matches it.
 
 ---
 
@@ -164,24 +164,24 @@ garden; neither will Rialto be one.
 
 ### 3.3 `contracts/upto-settlement` - the capped-payment contract
 
-**Design accepted (ADR 0001); mechanics finalized by the contract research spike**
-([spec draft](https://gist.github.com/Iam0TI/1bab9ffc1c0e619ba762116f2af9141c), with two
-fixes proposed in review). The cap is enforced on-chain by a minimal, stateless Soroban
-contract (`UptoSettlement`): the client signs
-**(recipient, asset, max amount, validAfter, deadline, salt, autoRevoke)** in one auth
-entry - the actual amount is deliberately excluded from the signature and arrives
-unsigned at settlement. Inside a single atomic `settle()` call the contract grants
-itself an allowance for the maximum (satisfied by a pre-signed fixed-argument
+**Design accepted (ADR 0001); mechanics finalized in the spec merged into this repo**
+([`docs/scheme_upto_stellar.md`](scheme_upto_stellar.md)). The cap is enforced on-chain
+by a minimal, stateless Soroban contract (`UptoSettlement`): the client signs
+**(recipient, asset, max amount, validAfter, expirationLedger, salt, autoRevoke)** in
+one auth entry - the actual amount is deliberately excluded from the signature and
+arrives unsigned at settlement. Inside a single atomic `settle()` call the contract
+grants itself an allowance for the maximum (satisfied by a pre-signed fixed-argument
 sub-invocation), transfers the actual amount, and - if the client opted in via
 `autoRevoke` - zeroes any leftover allowance in the same transaction, so no allowance
 ever exists on-chain outside the settlement itself. `actual ≤ max` is checked by the
-contract; both time bounds are enforced on-chain (`validAfter`/`deadline` as clock time
-against the ledger timestamp); replay protection rides Soroban's native auth-entry
-nonce; zero usage means no transaction at all.
+contract; replay protection rides Soroban's native auth-entry nonce; zero usage means
+no transaction at all.
 
-Two review fixes pending in the spec draft: the allowance's expiry value must be
-client-chosen and signed (a contract-computed value cannot match the pre-signed
-sub-invocation's exact arguments), and `salt` becomes required.
+Time bounds: the client-chosen, **signed `expirationLedger`** is the single expiry -
+the contract checks it against the ledger sequence, and the *same signed value* feeds
+the token approval's expiry, so no timestamp-to-ledger conversion exists to mismatch
+(the flaw review caught in the first draft). `validAfter` stays a clock-time argument
+checked on-chain, giving a real "not before" bound. `salt` is required.
 
 Settlement is deliberately **facilitator-agnostic**: no facilitator identity is bound
 into the signature, so any facilitator holding the signed entries can submit - which is
