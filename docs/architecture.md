@@ -3,10 +3,9 @@
 Status: draft for team review (branch `architecture`).
 Everything in this document is grounded in one of: the x402 specs as merged upstream, the
 `@x402/stellar` package as published (v2.21.0), SDF's reference implementation, our own
-settled testnet runs, or an accepted design decision in `docs/decisions/`. The one block
-still open is marked **PENDING** and gated on the board card
-*"Metered-payments (upto) contract research - Favour - due Mon Aug 10"*
-([project board](https://github.com/orgs/0d1026/projects/1)).
+settled testnet runs, or an accepted design decision in `docs/decisions/`. The contract
+research spike has landed ([spec draft](https://gist.github.com/Iam0TI/1bab9ffc1c0e619ba762116f2af9141c));
+§3.3 reflects its design plus the two fixes proposed in review.
 
 ---
 
@@ -165,16 +164,30 @@ garden; neither will Rialto be one.
 
 ### 3.3 `contracts/upto-settlement` - the capped-payment contract
 
-**Design accepted (ADR 0001); final mechanics PENDING the contract research spike**
-(board: *Metered-payments (upto) contract research - Favour - Mon Aug 10*). What is
-settled: the cap is enforced on-chain by a minimal, stateless Soroban contract - the
-client signs (recipient, token, max, validity window, facilitator) in one auth entry, the
-actual amount arrives unsigned at settlement, the contract enforces `actual ≤ max`
-atomically in one transaction, replay protection rides Soroban's native auth-entry nonce,
-and `valid_after_ledger` is a signed argument checked on-chain. What the spike decides:
-the internal settlement mechanic (atomic pull-max/pay-actual/refund vs a
-contract-scoped allowance) and the exact entrypoint signature. Zero usage means no
-transaction at all.
+**Design accepted (ADR 0001); mechanics finalized by the contract research spike**
+([spec draft](https://gist.github.com/Iam0TI/1bab9ffc1c0e619ba762116f2af9141c), with two
+fixes proposed in review). The cap is enforced on-chain by a minimal, stateless Soroban
+contract (`UptoSettlement`): the client signs
+**(recipient, asset, max amount, validAfter, deadline, salt, autoRevoke)** in one auth
+entry - the actual amount is deliberately excluded from the signature and arrives
+unsigned at settlement. Inside a single atomic `settle()` call the contract grants
+itself an allowance for the maximum (satisfied by a pre-signed fixed-argument
+sub-invocation), transfers the actual amount, and - if the client opted in via
+`autoRevoke` - zeroes any leftover allowance in the same transaction, so no allowance
+ever exists on-chain outside the settlement itself. `actual ≤ max` is checked by the
+contract; both time bounds are enforced on-chain (`validAfter`/`deadline` as clock time
+against the ledger timestamp); replay protection rides Soroban's native auth-entry
+nonce; zero usage means no transaction at all.
+
+Two review fixes pending in the spec draft: the allowance's expiry value must be
+client-chosen and signed (a contract-computed value cannot match the pre-signed
+sub-invocation's exact arguments), and `salt` becomes required.
+
+Settlement is deliberately **facilitator-agnostic**: no facilitator identity is bound
+into the signature, so any facilitator holding the signed entries can submit - which is
+what the federation model and the self-facilitation path need. The tradeoff is stated
+honestly: a leaked authorization can at worst settle the signed maximum to the signed
+recipient - never a different amount ceiling, never a different recipient.
 
 ### 3.4 `packages/mcp-server` - the agent interface
 
@@ -212,7 +225,7 @@ feeds the judgment set. Anyone can re-run our numbers.
 |---|----------|----------|---------|
 | 4.1 | Client signature | A facilitator (including us) altering amount, asset, or recipient | The signed auth entry binds exact arguments; any change is a signature failure enforced by Stellar consensus. Non-custodial by construction. |
 | 4.2 | Catalog integrity | A hostile client echoing forged metadata or a crafted route template into the payment payload | The integrity gauntlet (§3.2): schema validation, sanitized route templates (percent-decode before traversal checks), field-level soft-drop, no external `$ref`, provenance labeling. Quality judgment (is the service good?) stays with agents - integrity validation (is the entry forged?) is ours. |
-| 4.3 | Spending cap | A seller or facilitator settling above an agent's authorized maximum, redirecting funds, or settling twice | The `upto` contract: cap and recipient are in the signed arguments, `actual ≤ max` checked on-chain, auth-entry nonce consumed on settlement. |
+| 4.3 | Spending cap | A seller or facilitator settling above an agent's authorized maximum, redirecting funds, or settling twice | The `upto` contract: cap and recipient are in the signed arguments, `actual ≤ max` checked on-chain, auth-entry nonce consumed on settlement. Settlement is facilitator-agnostic by design - the signature bounds *what* can happen, not *who* submits it. |
 | 4.4 | Sponsor economics | Callers burning the operator's sponsored fees with settlements that fail | Per-principal cost accounting; rate limits tied to settlement success rate; prepaid tier as off-chain credit. Failed-settlement cost is bounded and attributable. |
 
 ## 5. Behavior under failure
