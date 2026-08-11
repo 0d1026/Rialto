@@ -1,5 +1,6 @@
 export const REPO_URL = 'https://github.com/0d1026/Rialto';
 export const AGENTVAULT_URL = 'https://github.com/xpanvictor/agentvault';
+export const FCR_X402_URL = 'https://github.com/bomanaps/FIL-x402';
 
 export const navLinks = [
   { label: 'Docs', href: '/docs' },
@@ -106,6 +107,12 @@ export const priorWorkFeatureChips = [
   'Filecoin + PDP proofs',
   'x402 micropayments',
   'ERC-8004 identity',
+];
+
+export const fcrX402FeatureChips = [
+  'x402 facilitator',
+  'Filecoin FCR finality',
+  'Bond-backed settlement',
 ];
 
 export const footerLinks = [
