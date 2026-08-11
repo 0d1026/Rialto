@@ -1,0 +1,53 @@
+---
+icon: Rocket
+title: Introduction
+description: What Rialto is and why it exists.
+---
+
+Rialto is an **x402 payment facilitator and Bazaar discovery layer for Stellar** - so AI
+agents can find, pay for, and verify paid services on `stellar:testnet` and
+`stellar:pubnet`.
+
+## The problem, measured
+
+x402 lets software pay for HTTP resources with an on-chain payment instead of an API key.
+On Stellar, settlement already works - we verified it ourselves with real settled
+transactions through the reference tooling and the official end-to-end test suite. What
+is missing is **discovery**: an agent can only pay endpoints it was already told about.
+
+We pulled the main public x402 catalog (Coinbase's Bazaar - 14,107 resources) in full and measured
+Stellar's actual position in it:
+
+- 518 entries advertise Stellar - but **92% belong to a single seller** listing Stellar
+  alongside every other chain
+- the remaining entries use malformed asset identifiers **no conformant Stellar client
+  can settle**
+- **zero** entries are Stellar-only, **zero** offer metered (`upto`) payments on
+  Stellar, and **zero** MCP tools are cataloged in it
+- the catalog's own search ignores network intent: querying for a Stellar service
+  returns EVM results
+
+Stellar is technically listed and practically invisible. Rialto exists to fix that.
+
+## What Rialto builds
+
+1. **A facilitator** - canonical `/verify`, `/settle`, `/supported` for both Stellar
+   networks, composing the Apache-2.0 `@x402/stellar` package rather than
+   reimplementing settlement.
+2. **A discovery catalog** - services are indexed automatically the moment a payment
+   settles; no registration step. Validated against poisoning, searchable in plain
+   language, ranked by real settlement history.
+3. **Federation** - independent facilitators can register, external catalogs are
+   ingested and cross-published: a service settles anywhere but is findable everywhere.
+4. **The `upto` payment scheme for Stellar** - authorize a spending ceiling, settle
+   actual usage, with the cap enforced on-chain. See the
+   [spec](/docs/scheme-upto-stellar).
+5. **An MCP server** - so agents run discover → pay → verify from inside their own
+   runtime, and hold a receipt they can check against the public ledger.
+
+## Where to go next
+
+- [Architecture](/docs/architecture) - components, flows, trust boundaries, diagram
+- [upto scheme spec](/docs/scheme-upto-stellar) - the full Stellar scheme specification
+- [Design decisions](/docs/decisions/upto-onchain-cap) - why the cap lives on-chain, and
+  [how search quality is proven](/docs/decisions/search-stack-and-eval)

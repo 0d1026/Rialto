@@ -30,6 +30,7 @@ only pay endpoints it was already told about. Rialto adds the discovery layer:
 | `packages/eval-harness` | The search-quality test set and scoring pipeline - versioned queries with known right answers, run on every ranking change |
 | `contracts/upto-settlement` | Soroban contract enforcing the `upto` (pay-up-to) scheme's spending cap on-chain |
 | `docs/` | Architecture, diagram, and design-decision records |
+| `site/` | The documentation website (Next.js + Fumadocs) |
 | `examples/` | Runnable seller and buyer end-to-end examples |
 
 ## Design decisions
