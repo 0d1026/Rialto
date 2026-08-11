@@ -1,0 +1,6 @@
+{
+  "title": "Guides",
+  "icon": "BookOpen",
+  "defaultOpen": true,
+  "pages": ["sellers", "buyers", "operators"]
+}

@@ -1,0 +1,6 @@
+{
+  "title": "Design Decisions",
+  "icon": "Scale",
+  "defaultOpen": false,
+  "pages": ["upto-onchain-cap", "search-stack-and-eval"]
+}
