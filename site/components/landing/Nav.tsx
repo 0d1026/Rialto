@@ -14,7 +14,16 @@ export default function Nav() {
         gap: 24,
       }}
     >
-      <img src="/logo-lockup.png" alt="Rialto" style={{ height: 34, display: 'block' }} />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        <img
+          src="/logo-mark-transparent.png"
+          alt="Rialto"
+          style={{ height: 28, width: 'auto', display: 'block' }}
+        />
+        <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 18 }}>
+          Rialto
+        </span>
+      </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(16px,3vw,36px)', flexWrap: 'wrap' }}>
         {navLinks.map((link) =>
           link.href.startsWith('/') ? (

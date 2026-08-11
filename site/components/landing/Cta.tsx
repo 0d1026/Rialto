@@ -19,7 +19,7 @@ export default function Cta() {
           Follow the build, milestone by milestone
         </h2>
         <p style={{ fontSize: 16, color: 'var(--rialto-text-body-3)', maxWidth: 520, margin: '0 auto 32px', lineHeight: 1.6 }}>
-          Code lands in the open. The SCF #45 submission will be linked here once it&apos;s public.
+          Code lands in the open.
         </p>
         <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
           <a href={REPO_URL} className="rialto-btn rialto-btn--primary">
