@@ -14,7 +14,7 @@ export default function GapSection() {
             fontWeight: 500,
           }}
         >
-          x402 already solves payment — settlement on Stellar works today. The gap is discovery: an agent can
+          x402 already solves payment. Settlement on Stellar works today. The gap is discovery: an agent can
           only pay an endpoint it already knows about. Rialto adds the discovery layer, so a payment settling
           through the facilitator is what catalogs the service it paid for.
         </p>

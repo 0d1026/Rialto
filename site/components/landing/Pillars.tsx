@@ -36,7 +36,7 @@ export default function Pillars() {
           </h3>
           <p style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--rialto-text-body-3)', margin: 0 }}>
             Canonical <code className="rialto-code-chip">/verify</code>, <code className="rialto-code-chip">/settle</code>,{' '}
-            <code className="rialto-code-chip">/supported</code> — built on the Apache-2.0{' '}
+            <code className="rialto-code-chip">/supported</code>, built on the Apache-2.0{' '}
             <code className="rialto-code-chip">@x402/stellar</code> package. We compose settlement, we do not
             reimplement it.
           </p>

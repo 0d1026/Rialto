@@ -24,7 +24,7 @@ export default function PriorWork() {
             AgentVault
           </p>
           <p style={{ fontSize: 15, lineHeight: 1.65, color: 'var(--rialto-text-body-3)', margin: '0 0 20px', maxWidth: 560 }}>
-            Verifiable storage infrastructure for autonomous AI agents — Filecoin Onchain Cloud, x402
+            Verifiable storage infrastructure for autonomous AI agents: Filecoin Onchain Cloud, x402
             micropayments, and ERC-8004 identity, so an agent can prove who it is and that its stored data is
             real, not just that it paid for storage.
           </p>

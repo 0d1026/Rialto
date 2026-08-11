@@ -8,7 +8,7 @@ export const navLinks = [
 ];
 
 export const facilitatorBullets: string[] = [
-  'Channel-account throughput — parallel settlements, no sequence collisions',
+  'Channel-account throughput: parallel settlements, no sequence collisions',
   'Fee sponsorship with sponsor-cost protection',
   'Verifiable, on-ledger settlement receipts',
 ];
@@ -33,7 +33,7 @@ export const proofCards: ProofCard[] = [
   {
     title: 'Public eval harness',
     description:
-      '@rialto/eval-harness is a versioned golden-query set scored on nDCG@10, MRR, and Recall@20 — gated in CI on every ranking change, re-runnable by anyone.',
+      '@rialto/eval-harness is a versioned golden-query set scored on nDCG@10, MRR, and Recall@20, gated in CI on every ranking change, re-runnable by anyone.',
     metrics: ['nDCG@10', 'MRR', 'Recall@20'],
   },
   {
@@ -83,7 +83,7 @@ export interface AdrCard {
 
 export const adrCards: AdrCard[] = [
   {
-    label: 'ADR 0001 — upto on-chain cap',
+    label: 'ADR 0001: upto on-chain cap',
     quote: '“Token allowances alone cannot bind the recipient or guarantee single settlement.”',
     supporting:
       'A minimal, stateless Soroban contract enforces the spending cap on-chain and settles atomically in one transaction.',
@@ -92,10 +92,10 @@ export const adrCards: AdrCard[] = [
     variant: 'blue',
   },
   {
-    label: 'ADR 0002 — search stack',
+    label: 'ADR 0002: search stack',
     quote:
       'Rejected Elasticsearch for license reasons, and a dedicated vector database as “a second stateful service for a corpus that fits in RAM.”',
-    supporting: 'Hybrid retrieval runs on plain PostgreSQL instead — one boring, self-hostable store.',
+    supporting: 'Hybrid retrieval runs on plain PostgreSQL instead: one boring, self-hostable store.',
     href: `${REPO_URL}/blob/main/docs/decisions/0002-search-stack-and-eval.md`,
     linkLabel: 'Read ADR 0002 ↗',
     variant: 'violet',
