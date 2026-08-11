@@ -586,22 +586,11 @@ need `amount` fixed at build time, which defeats the entire point of
 
 ### Example Authorization Entry Tree
 
-```
-SorobanAuthorizationEntry
-└── rootInvocation: ContractFn
-    contract: UptoSettlement
-    function: "settle"
-    args: [from, payTo, asset, maxAmount, validAfter, expirationLedger, salt, autoRevoke]
-    subInvocations:
-      ├── ContractFn
-      │   contract: <asset token address>
-      │   function: "approve"
-      │   args: [from, spender=UptoSettlement, amount=maxAmount, expirationLedger]
-      │
-      └── ContractFn                          # present only if autoRevoke = true
-          contract: <asset token address>
-          function: "approve"
-          args: [from, spender=UptoSettlement, amount=0, expiration_ledger=0]
+```mermaid
+flowchart TD
+    ROOT["SorobanAuthorizationEntry"] --> INV["rootInvocation: ContractFn<br/>contract: UptoSettlement<br/>function: settle<br/>args: [from, payTo, asset, maxAmount,<br/>validAfter, expirationLedger, salt, autoRevoke]"]
+    INV --> SUB1["subInvocation: ContractFn<br/>contract: &lt;asset token address&gt;<br/>function: approve<br/>args: [from, spender=UptoSettlement,<br/>amount=maxAmount, expirationLedger]"]
+    INV -.->|"present only if autoRevoke = true"| SUB2["subInvocation: ContractFn<br/>contract: &lt;asset token address&gt;<br/>function: approve<br/>args: [from, spender=UptoSettlement,<br/>amount=0, expirationLedger=0]"]
 ```
 
 Note `amount` never appears anywhere in this tree  it is supplied only at

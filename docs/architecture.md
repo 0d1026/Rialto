@@ -30,16 +30,26 @@ Apache-2.0 `@x402/stellar` package that already settles payments on both Stellar
 
 ### 2.1 Payment loop (exact scheme - runs today, we verified it end to end)
 
-```
-agent                    seller API                Rialto facilitator          Stellar
-  |--- GET /resource --------->|                          |                       |
-  |<-- 402 + requirements -----|                          |                       |
-  |  sign Soroban auth entry   |                          |                       |
-  |--- retry + payment ------->|--- POST /verify -------->|-- simulate ---------->|
-  |                            |<-- isValid --------------|                       |
-  |                            |   (serve the resource)   |                       |
-  |                            |--- POST /settle -------->|-- submit tx --------->|
-  |<-- 200 + resource ---------|<-- tx hash + receipt ----|<-- settled ~5s -------|
+```mermaid
+sequenceDiagram
+    participant A as Agent
+    participant S as Seller API
+    participant F as Rialto facilitator
+    participant L as Stellar
+
+    A->>S: GET /resource
+    S-->>A: 402 + requirements
+    Note over A: sign Soroban auth entry
+    A->>S: retry + payment
+    S->>F: POST /verify
+    F->>L: simulate
+    F-->>S: isValid
+    Note over S: serve the resource
+    S->>F: POST /settle
+    F->>L: submit tx
+    L-->>F: settled ~5s
+    F-->>S: tx hash + receipt
+    S-->>A: 200 + resource
 ```
 
 Key properties, all from the merged `scheme_exact_stellar` spec and observed in our runs:
@@ -62,16 +72,18 @@ Key properties, all from the merged `scheme_exact_stellar` spec and observed in 
 
 ### 2.2 Discovery loop (the new capability)
 
-```
-seller API                    agent                 Rialto facilitator         catalog (Postgres)
-  | 402 includes bazaar         |                        |                          |
-  | metadata + JSON schema ---->|                        |                          |
-  |                             |-- payment echoes ----->|                          |
-  |                             |   the metadata         |-- validate:              |
-  |                             |                        |   schema, route template,|
-  |                             |                        |   soft-drop fields ----->|-- indexed
-  |                             |<-- EXTENSION-RESPONSES |                          |
-  |                             |    (catalog outcome)   |                          |
+```mermaid
+sequenceDiagram
+    participant S as Seller API
+    participant A as Agent
+    participant F as Rialto facilitator
+    participant C as Catalog (Postgres)
+
+    S-->>A: 402 includes bazaar metadata + JSON schema
+    A->>F: payment echoes the metadata
+    F->>C: validate: schema, route template, soft-drop fields
+    C-->>F: indexed
+    F-->>A: EXTENSION-RESPONSES (catalog outcome)
 ```
 
 - Sellers declare metadata (name, description, tags, per-parameter descriptions, input/
