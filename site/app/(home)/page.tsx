@@ -1,30 +1,28 @@
-import Link from 'next/link';
+import Nav from '@/components/landing/Nav';
+import Hero from '@/components/landing/Hero';
+import GapSection from '@/components/landing/GapSection';
+import Pillars from '@/components/landing/Pillars';
+import Proof from '@/components/landing/Proof';
+import HowItWorks from '@/components/landing/HowItWorks';
+import Adrs from '@/components/landing/Adrs';
+import PriorWork from '@/components/landing/PriorWork';
+import Cta from '@/components/landing/Cta';
+import Footer from '@/components/landing/Footer';
+import '@/components/landing/landing.css';
 
 export default function HomePage() {
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-4 text-center">
-      <h1 className="mb-4 text-4xl font-bold">Rialto</h1>
-      <p className="mb-2 max-w-xl text-lg text-fd-muted-foreground">
-        An x402 payment facilitator and Bazaar discovery layer for Stellar - so
-        AI agents can find, pay for, and verify paid services.
-      </p>
-      <p className="mb-8 max-w-xl text-sm text-fd-muted-foreground">
-        Landing page in progress. The technical documentation is live.
-      </p>
-      <div className="flex gap-3">
-        <Link
-          href="/docs"
-          className="lift rounded-lg bg-fd-primary px-5 py-2.5 font-medium text-fd-primary-foreground"
-        >
-          Read the Docs
-        </Link>
-        <a
-          href="https://github.com/0d1026/Rialto"
-          className="lift rounded-lg border px-5 py-2.5 font-medium"
-        >
-          GitHub
-        </a>
-      </div>
-    </main>
+    <div className="rialto-landing">
+      <Nav />
+      <Hero />
+      <GapSection />
+      <Pillars />
+      <Proof />
+      <HowItWorks />
+      <Adrs />
+      <PriorWork />
+      <Cta />
+      <Footer />
+    </div>
   );
 }

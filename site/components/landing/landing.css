@@ -1,0 +1,294 @@
+/*
+  Landing page styles, scoped entirely under `.rialto-landing` so they can
+  never leak into or collide with the docs site's Tailwind/Fumadocs styles.
+  All custom properties and keyframes are prefixed `--rialto-` / `rialto-`
+  for the same reason.
+
+  Theme accent tokens: --rialto-accent and --rialto-accent-soft must always
+  be updated TOGETHER to flip themes (CSS cannot derive a tinted "soft"
+  background from a solid color, so both are declared separately). The two
+  supported brand themes are:
+    blue (default):  --rialto-accent: #3B6FEB;  --rialto-accent-soft: rgba(59,111,235,.14);
+    violet (alt):     --rialto-accent: #7C3AED;  --rialto-accent-soft: rgba(124,58,237,.14);
+  --rialto-accent-alt is NOT part of the theme swap — it stays hardcoded
+  violet regardless of theme, because the source design hardcodes violet on
+  a few specific elements (Discovery pillar card border, ADR 0002 left
+  border, and some constellation SVG lines/circles) independent of accent.
+*/
+
+.rialto-landing {
+  /* Theme accent (swap both together) */
+  --rialto-accent: #3b6feb;
+  --rialto-accent-soft: rgba(59, 111, 235, 0.14);
+
+  /* Fixed brand violet, independent of theme */
+  --rialto-accent-alt: #7c3aed;
+  --rialto-accent-alt-soft: rgba(124, 58, 237, 0.14);
+  --rialto-accent-alt-border: rgba(124, 58, 237, 0.35);
+
+  /* Background / panel fills */
+  --rialto-bg-page: #0b0f1a;
+  --rialto-bg-panel: #111b27;
+  --rialto-bg-terminal: #0d1420;
+
+  /* Text */
+  --rialto-text-primary: #f2f4fa;
+  --rialto-text-heading: #ffffff;
+  --rialto-text-body-1: #dce2f0;
+  --rialto-text-body-2: #b8c0d4;
+  --rialto-text-body-3: #aeb7cb;
+  --rialto-text-muted-1: #8b95ac;
+  --rialto-text-muted-2: #7c8aa3;
+  --rialto-text-muted-3: #6b7590;
+
+  /* Borders / dividers */
+  --rialto-border-faint: rgba(255, 255, 255, 0.06);
+  --rialto-border-soft: rgba(255, 255, 255, 0.08);
+  --rialto-border-medium: rgba(255, 255, 255, 0.1);
+  --rialto-border-strong: rgba(255, 255, 255, 0.14);
+  --rialto-border-hairline: rgba(255, 255, 255, 0.18);
+
+  /* Links */
+  --rialto-link: #6c9bff;
+  --rialto-link-hover: #9dc0ff;
+
+  /* Inline code chips */
+  --rialto-code-bg: rgba(255, 255, 255, 0.07);
+  --rialto-code-text: #dce2f0;
+
+  /* Radii */
+  --rialto-radius-card: 16px;
+  --rialto-radius-terminal: 14px;
+  --rialto-radius-button: 9px;
+  --rialto-radius-pill: 999px;
+  --rialto-radius-chip: 7px;
+
+  /* Layout */
+  --rialto-content-max-width: 1160px;
+  --rialto-content-padding-x: clamp(20px, 5vw, 48px);
+  --rialto-section-padding-top: clamp(56px, 7vw, 90px);
+  --rialto-section-padding-bottom: clamp(70px, 8vw, 110px);
+
+  /* Grid gaps */
+  --rialto-grid-gap-card: 20px;
+
+  background: var(--rialto-bg-page);
+  color: var(--rialto-text-primary);
+  font-family: 'Manrope', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+@keyframes rialto-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes rialto-twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+@keyframes rialto-blink {
+  0%,
+  55% {
+    opacity: 1;
+  }
+  56%,
+  100% {
+    opacity: 0;
+  }
+}
+
+.rialto-landing a {
+  color: var(--rialto-link);
+  text-decoration: none;
+}
+
+.rialto-landing a:hover {
+  color: var(--rialto-link-hover);
+}
+
+.rialto-landing img {
+  max-width: 100%;
+}
+
+/* Layout */
+
+.rialto-landing .rialto-section {
+  max-width: var(--rialto-content-max-width);
+  margin: 0 auto;
+  padding: 0 var(--rialto-content-padding-x) var(--rialto-section-padding-bottom);
+}
+
+.rialto-landing .rialto-section--divided {
+  border-top: 1px solid var(--rialto-border-soft);
+  padding-top: var(--rialto-section-padding-top);
+}
+
+.rialto-landing .rialto-section-eyebrow-block {
+  margin-bottom: 44px;
+  max-width: 640px;
+}
+
+.rialto-landing .rialto-eyebrow {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rialto-text-muted-2);
+  font-weight: 600;
+  margin: 0 0 14px;
+}
+
+.rialto-landing .rialto-section-heading {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(28px, 3.4vw, 38px);
+  color: var(--rialto-text-heading);
+  margin: 0;
+  font-weight: 700;
+}
+
+/* Cards */
+
+.rialto-landing .rialto-card {
+  background: var(--rialto-bg-panel);
+  border: 1px solid var(--rialto-border-soft);
+  border-radius: var(--rialto-radius-card);
+  padding: 30px;
+}
+
+.rialto-landing .rialto-card--bordered {
+  border: 1px solid var(--rialto-border-soft);
+  border-radius: var(--rialto-radius-card);
+  padding: 30px;
+}
+
+.rialto-landing .rialto-card--accent-left {
+  background: var(--rialto-bg-panel);
+  border-radius: var(--rialto-radius-card);
+  padding: 32px;
+  border-left: 3px solid var(--rialto-accent);
+}
+
+.rialto-landing .rialto-card--accent-left--violet {
+  border-left: 3px solid var(--rialto-accent-alt);
+}
+
+/* Buttons */
+
+.rialto-landing .rialto-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 13px 24px;
+  border-radius: var(--rialto-radius-button);
+}
+
+.rialto-landing .rialto-btn--primary {
+  color: #0b0f1a;
+  background: var(--rialto-accent);
+}
+
+.rialto-landing .rialto-btn--outline {
+  color: var(--rialto-text-primary);
+  border: 1px solid var(--rialto-border-hairline);
+}
+
+.rialto-landing .rialto-btn--small {
+  font-size: 14px;
+  padding: 11px 20px;
+  white-space: nowrap;
+}
+
+.rialto-landing .rialto-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0b0f1a;
+  background: #f2f4fa;
+  padding: 9px 18px;
+  border-radius: 8px;
+}
+
+/* Inline code chip */
+
+.rialto-landing .rialto-code-chip {
+  background: var(--rialto-code-bg);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--rialto-code-text);
+}
+
+.rialto-landing .rialto-code-chip--lg {
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 0.9em;
+}
+
+/* Metric / feature chips */
+
+.rialto-landing .rialto-metric-chip {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: var(--rialto-border-faint);
+  color: var(--rialto-text-body-1);
+}
+
+.rialto-landing .rialto-feature-chip {
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--rialto-border-faint);
+  color: var(--rialto-text-body-1);
+}
+
+/* Pipeline chips (Discovery pillar) */
+
+.rialto-landing .rialto-pipeline-chip {
+  padding: 6px 10px;
+  border-radius: var(--rialto-radius-chip);
+  background: var(--rialto-border-faint);
+  color: var(--rialto-text-body-1);
+}
+
+.rialto-landing .rialto-pipeline-chip--violet-soft {
+  background: rgba(124, 58, 237, 0.16);
+  color: #c6a9fa;
+}
+
+.rialto-landing .rialto-pipeline-chip--violet-strong {
+  background: rgba(124, 58, 237, 0.28);
+  color: #ffffff;
+}
+
+.rialto-landing .rialto-pipeline-connector {
+  color: #5a6480;
+}
+
+/* Hero column animations */
+
+.rialto-landing .rialto-hero-col-left {
+  animation: rialto-rise-in 0.7s ease-out both;
+}
+
+.rialto-landing .rialto-hero-col-right {
+  animation: rialto-rise-in 0.8s ease-out 0.1s both;
+}
