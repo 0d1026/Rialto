@@ -2,6 +2,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { Catalog } from '../../src/catalog.js';
 import { createApp } from '../../src/app.js';
+import { fakeEmbeddingModel } from '../setup/fake-embedding-model.js';
 import { resetDb, testDatabaseUrl } from '../setup/db.js';
 import { VALID_EVENT } from '../fixtures/settlement-events.js';
 
@@ -32,7 +33,7 @@ describe('[integration] ingest -> catalog: the facilitator/discovery contract po
   });
 
   it('a real POST to /internal/settlement-events results in a real, queryable catalog row', async () => {
-    const app = createApp(catalog, {});
+    const app = createApp(catalog, { embeddingModel: fakeEmbeddingModel() });
 
     const res = await request(app).post('/internal/settlement-events').send(VALID_EVENT);
     expect(res.status).toBe(202);

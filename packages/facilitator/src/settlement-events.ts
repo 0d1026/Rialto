@@ -6,10 +6,10 @@
  * that payment, by design.
  */
 
-import type { PaymentPayload, PaymentRequirements } from '@x402/core/types';
-import { extractDiscoveryInfo } from '@x402/extensions/bazaar';
-import type { SettlementEvent, BazaarMetadata } from '@rialto/shared';
-import { logger } from './utils/logger.js';
+import type { PaymentPayload, PaymentRequirements } from "@x402/core/types";
+import { extractDiscoveryInfo } from "@x402/extensions/bazaar";
+import type { SettlementEvent, BazaarMetadata } from "@rialto/shared";
+import { logger } from "./utils/logger.js";
 
 const POST_TIMEOUT_MS = 3_000;
 
@@ -25,7 +25,10 @@ export function extractBazaarMetadata(
   try {
     discovered = extractDiscoveryInfo(paymentPayload, paymentRequirements);
   } catch (err) {
-    logger.warn({ err: String(err) }, 'discovery extraction failed (payment unaffected)');
+    logger.warn(
+      { err: String(err) },
+      "discovery extraction failed (payment unaffected)",
+    );
     return undefined;
   }
   if (!discovered) return undefined;
@@ -37,26 +40,37 @@ export function extractBazaarMetadata(
     serviceName: discovered.serviceName,
     tags: discovered.tags,
     iconUrl: discovered.iconUrl,
-    toolName: 'toolName' in discovered ? discovered.toolName : undefined,
+    routeTemplate: "routeTemplate" in discovered ? discovered.routeTemplate : undefined,
+    toolName: "toolName" in discovered ? discovered.toolName : undefined,
     extensions: discovered.extensions as Record<string, unknown> | undefined,
   };
 }
 
-export function postSettlementEvent(ingestUrl: string, event: SettlementEvent): void {
+export function postSettlementEvent(
+  ingestUrl: string,
+  event: SettlementEvent,
+): void {
   if (!ingestUrl) return;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), POST_TIMEOUT_MS);
   void fetch(ingestUrl, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    method: "POST",
+    headers: { "content-type": "application/json" },
     body: JSON.stringify(event),
     signal: controller.signal,
   })
     .then((res) => {
-      if (!res.ok) logger.warn({ status: res.status }, 'settlement event rejected by discovery');
+      if (!res.ok)
+        logger.warn(
+          { status: res.status },
+          "settlement event rejected by discovery",
+        );
     })
     .catch((err) => {
-      logger.warn({ err: String(err) }, 'settlement event post failed (settlement unaffected)');
+      logger.warn(
+        { err: String(err) },
+        "settlement event post failed (settlement unaffected)",
+      );
     })
     .finally(() => clearTimeout(timer));
 }

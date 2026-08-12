@@ -2,6 +2,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { Catalog } from '../../src/catalog.js';
 import { createApp } from '../../src/app.js';
+import { fakeEmbeddingModel } from '../setup/fake-embedding-model.js';
 import { resetDb, testDatabaseUrl } from '../setup/db.js';
 
 /**
@@ -66,7 +67,7 @@ describe('discovery/search: lexical ranking behavior', () => {
   });
 
   it('a query matching serviceName or description returns that resource', async () => {
-    const app = createApp(catalog, {});
+    const app = createApp(catalog, { embeddingModel: fakeEmbeddingModel() });
     const res = await request(app).get('/discovery/search').query({ query: 'stock market' });
     expect(res.status).toBe(200);
     const resources = res.body.resources.map((r: { resource: string }) => r.resource);
@@ -74,14 +75,14 @@ describe('discovery/search: lexical ranking behavior', () => {
   });
 
   it('a query matching nothing returns an empty result set, not an error', async () => {
-    const app = createApp(catalog, {});
+    const app = createApp(catalog, { embeddingModel: fakeEmbeddingModel() });
     const res = await request(app).get('/discovery/search').query({ query: 'nonexistent-zzz-term' });
     expect(res.status).toBe(200);
     expect(res.body.resources).toEqual([]);
   });
 
   it('among multiple matches, the more textually relevant result ranks first', async () => {
-    const app = createApp(catalog, {});
+    const app = createApp(catalog, { embeddingModel: fakeEmbeddingModel() });
     const res = await request(app).get('/discovery/search').query({ query: 'weather' });
     expect(res.status).toBe(200);
     const resources = res.body.resources.map((r: { resource: string }) => r.resource);
@@ -94,7 +95,7 @@ describe('discovery/search: lexical ranking behavior', () => {
   });
 
   it('a short/partial query still returns results via the ILIKE fallback', async () => {
-    const app = createApp(catalog, {});
+    const app = createApp(catalog, { embeddingModel: fakeEmbeddingModel() });
     // a substring that does not align to a word/lexeme boundary, so FTS tokenization
     // alone would miss it - only the ILIKE fallback on service_name catches this
     const res = await request(app).get('/discovery/search').query({ query: 'eatherC' });

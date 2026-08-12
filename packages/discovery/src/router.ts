@@ -14,6 +14,7 @@
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import type { Catalog } from './catalog.js';
+import type { EmbeddingModel } from './search/embedding-model.js';
 
 const MAX_LIMIT = 100;
 
@@ -69,7 +70,10 @@ const federationRegisterSchema = z.object({
   catalogUrl: z.string().url().max(2048),
 });
 
-export function createRouter(catalog: Catalog, opts: { ingestToken?: string }): Router {
+export function createRouter(
+  catalog: Catalog,
+  opts: { ingestToken?: string; embeddingModel: EmbeddingModel },
+): Router {
   const router = Router();
 
   router.get('/discovery/resources', async (req: Request, res: Response) => {
@@ -101,7 +105,7 @@ export function createRouter(catalog: Catalog, opts: { ingestToken?: string }): 
     }
     const limit = intParam(req.query.limit, 20, MAX_LIMIT);
     const offset = decodeCursor(req.query.cursor);
-    const { items, total } = await catalog.search(query, {
+    const { items, total, partialResults } = await catalog.hybridSearch(opts.embeddingModel, query, {
       type: typeof req.query.type === 'string' ? req.query.type : undefined,
       limit,
       offset,
@@ -110,8 +114,7 @@ export function createRouter(catalog: Catalog, opts: { ingestToken?: string }): 
     res.json({
       x402Version: 2,
       resources: items,
-      // lexical v1 evaluates the full corpus for every query; nothing is truncated
-      partialResults: false,
+      partialResults,
       pagination: nextOffset < total ? { limit, cursor: encodeCursor(nextOffset) } : null,
     });
   });

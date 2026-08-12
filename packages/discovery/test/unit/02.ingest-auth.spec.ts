@@ -2,6 +2,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { Catalog } from '../../src/catalog.js';
 import { createApp } from '../../src/app.js';
+import { fakeEmbeddingModel } from '../setup/fake-embedding-model.js';
 import { resetDb, testDatabaseUrl } from '../setup/db.js';
 import { VALID_EVENT } from '../fixtures/settlement-events.js';
 
@@ -32,14 +33,14 @@ describe('ingest auth gate: POST /internal/settlement-events', () => {
   });
 
   it('rejects a request with no bearer token', async () => {
-    const app = createApp(catalog, { ingestToken: 'secret123' });
+    const app = createApp(catalog, { ingestToken: 'secret123', embeddingModel: fakeEmbeddingModel() });
     const res = await request(app).post('/internal/settlement-events').send(VALID_EVENT);
     expect(res.status).toBe(401);
     expect(res.body.error.code).toBe('payload_invalid');
   });
 
   it('rejects a request with an incorrect bearer token', async () => {
-    const app = createApp(catalog, { ingestToken: 'secret123' });
+    const app = createApp(catalog, { ingestToken: 'secret123', embeddingModel: fakeEmbeddingModel() });
     const res = await request(app)
       .post('/internal/settlement-events')
       .set('authorization', 'Bearer wrong-token')
@@ -49,7 +50,7 @@ describe('ingest auth gate: POST /internal/settlement-events', () => {
   });
 
   it('accepts a request with the correct bearer token', async () => {
-    const app = createApp(catalog, { ingestToken: 'secret123' });
+    const app = createApp(catalog, { ingestToken: 'secret123', embeddingModel: fakeEmbeddingModel() });
     const res = await request(app)
       .post('/internal/settlement-events')
       .set('authorization', 'Bearer secret123')
@@ -59,7 +60,7 @@ describe('ingest auth gate: POST /internal/settlement-events', () => {
   });
 
   it('when no ingestToken is configured, the endpoint is open (local/private use only)', async () => {
-    const app = createApp(catalog, {});
+    const app = createApp(catalog, { embeddingModel: fakeEmbeddingModel() });
     const res = await request(app).post('/internal/settlement-events').send(VALID_EVENT);
     expect(res.status).toBe(202);
   });

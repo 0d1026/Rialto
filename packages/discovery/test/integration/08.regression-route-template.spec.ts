@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import type { PaymentPayload, PaymentRequirements } from '@x402/core/types';
 import { Catalog } from '../../src/catalog.js';
 import { createApp } from '../../src/app.js';
+import { fakeEmbeddingModel } from '../setup/fake-embedding-model.js';
 import { resetDb, testDatabaseUrl } from '../setup/db.js';
 import {
   DISCOVERED_RESOURCE_WITH_ROUTE_TEMPLATE,
@@ -72,7 +73,7 @@ describe('[integration] regression: routeTemplate silently dropped from cataloge
     // even though DISCOVERED_RESOURCE_WITH_ROUTE_TEMPLATE.routeTemplate is set.
     expect(metadata?.routeTemplate).toBe(DISCOVERED_RESOURCE_WITH_ROUTE_TEMPLATE.routeTemplate);
 
-    const app = createApp(catalog, {});
+    const app = createApp(catalog, { embeddingModel: fakeEmbeddingModel() });
     const res = await request(app)
       .post('/internal/settlement-events')
       .send({
@@ -103,7 +104,7 @@ describe('[integration] regression: routeTemplate silently dropped from cataloge
     const metadata = extractBazaarMetadata(FAKE_PAYLOAD, FAKE_REQUIREMENTS);
     expect(metadata?.routeTemplate).toBeUndefined();
 
-    const app = createApp(catalog, {});
+    const app = createApp(catalog, { embeddingModel: fakeEmbeddingModel() });
     await request(app)
       .post('/internal/settlement-events')
       .send({

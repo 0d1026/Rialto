@@ -2,6 +2,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { Catalog } from '../../src/catalog.js';
 import { createApp } from '../../src/app.js';
+import { fakeEmbeddingModel } from '../setup/fake-embedding-model.js';
 import { resetDb, testDatabaseUrl } from '../setup/db.js';
 import { SECOND_VALID_EVENT, VALID_EVENT } from '../fixtures/settlement-events.js';
 
@@ -28,7 +29,7 @@ describe('[integration] search end-to-end: ingest via HTTP, read back via the pu
   });
 
   it('resources ingested via /internal/settlement-events are findable via /discovery/resources and /discovery/search', async () => {
-    const app = createApp(catalog, {});
+    const app = createApp(catalog, { embeddingModel: fakeEmbeddingModel() });
 
     await request(app).post('/internal/settlement-events').send(VALID_EVENT).expect(202);
     await request(app).post('/internal/settlement-events').send(SECOND_VALID_EVENT).expect(202);

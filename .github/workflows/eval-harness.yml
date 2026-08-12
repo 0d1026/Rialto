@@ -1,0 +1,52 @@
+name: eval-harness regression check
+
+on:
+  pull_request:
+    paths:
+      - "packages/discovery/src/search/**"
+      - "packages/eval-harness/**"
+      - "packages/shared/**"
+  push:
+    branches: [main]
+    paths:
+      - "packages/discovery/src/search/**"
+      - "packages/eval-harness/**"
+
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_PASSWORD: eval
+          POSTGRES_DB: rialto_eval
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # onnxruntime-node/sharp/protobufjs/esbuild postinstall scripts run
+      # automatically - pre-approved via pnpm-workspace.yaml's
+      # onlyBuiltDependencies, no interactive approval step needed.
+      - run: pnpm install --frozen-lockfile
+
+      - name: Run eval harness regression check
+        working-directory: packages/eval-harness
+        env:
+          DATABASE_URL: postgresql://postgres:eval@localhost:5432/rialto_eval
+        run: pnpm check-regression

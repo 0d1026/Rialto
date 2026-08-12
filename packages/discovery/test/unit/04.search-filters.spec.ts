@@ -2,6 +2,7 @@ import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { Catalog } from '../../src/catalog.js';
 import { createApp } from '../../src/app.js';
+import { fakeEmbeddingModel } from '../setup/fake-embedding-model.js';
 import { resetDb, testDatabaseUrl } from '../setup/db.js';
 
 /**
@@ -67,28 +68,28 @@ describe('discovery/resources: filters and pagination', () => {
   });
 
   it('filters by type', async () => {
-    const app = createApp(catalog, {});
+    const app = createApp(catalog, { embeddingModel: fakeEmbeddingModel() });
     const res = await request(app).get('/discovery/resources').query({ type: 'mcp' });
     expect(res.body.items).toHaveLength(1);
     expect(res.body.items[0].type).toBe('mcp');
   });
 
   it('filters by payTo', async () => {
-    const app = createApp(catalog, {});
+    const app = createApp(catalog, { embeddingModel: fakeEmbeddingModel() });
     const res = await request(app).get('/discovery/resources').query({ payTo: 'GBBB' });
     expect(res.body.items).toHaveLength(1);
     expect(res.body.items[0].resource).toContain('mcp-upto-pubnet-gbbb');
   });
 
   it('filters by scheme', async () => {
-    const app = createApp(catalog, {});
+    const app = createApp(catalog, { embeddingModel: fakeEmbeddingModel() });
     const res = await request(app).get('/discovery/resources').query({ scheme: 'upto' });
     expect(res.body.items).toHaveLength(1);
     expect(res.body.items[0].resource).toContain('mcp-upto-pubnet-gbbb');
   });
 
   it('filters by network', async () => {
-    const app = createApp(catalog, {});
+    const app = createApp(catalog, { embeddingModel: fakeEmbeddingModel() });
     const res = await request(app).get('/discovery/resources').query({ network: 'stellar:pubnet' });
     expect(res.body.items).toHaveLength(2);
     const resources = res.body.items.map((i: { resource: string }) => i.resource);
@@ -101,14 +102,14 @@ describe('discovery/resources: filters and pagination', () => {
   });
 
   it('filters by extensions', async () => {
-    const app = createApp(catalog, {});
+    const app = createApp(catalog, { embeddingModel: fakeEmbeddingModel() });
     const res = await request(app).get('/discovery/resources').query({ extensions: 'bazaar' });
     expect(res.body.items).toHaveLength(1);
     expect(res.body.items[0].resource).toContain('http-exact-pubnet-gaaa');
   });
 
   it('applies combined filters as AND, not OR', async () => {
-    const app = createApp(catalog, {});
+    const app = createApp(catalog, { embeddingModel: fakeEmbeddingModel() });
     // type=http AND scheme=exact AND network=stellar:testnet matches only the first seed row,
     // even though other rows independently match type=http or scheme=exact.
     const res = await request(app)
@@ -119,7 +120,7 @@ describe('discovery/resources: filters and pagination', () => {
   });
 
   it('paginates with stable, non-overlapping pages', async () => {
-    const app = createApp(catalog, {});
+    const app = createApp(catalog, { embeddingModel: fakeEmbeddingModel() });
     const page1 = await request(app).get('/discovery/resources').query({ limit: 2, offset: 0 });
     const page2 = await request(app).get('/discovery/resources').query({ limit: 2, offset: 2 });
     expect(page1.body.items).toHaveLength(2);

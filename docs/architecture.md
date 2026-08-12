@@ -148,17 +148,28 @@ submission regardless of provenance, implementing the Bazaar spec's rules:
   `iconUrl` each drop that field alone; only an invalid envelope rejects the entry
 - outcomes reported via `EXTENSION-RESPONSES`
 
-**Search** (accepted design - ADR 0002): hybrid retrieval - true BM25 (not bare
-`tsvector` ranking) + a local, permissively-licensed embedding model run in-process -
-fused with reciprocal rank fusion; query-derived structured constraints (a network named
-in the query is a hard filter, asset/price mentions boost); synthetic agent-intent
-queries generated per resource at index time and embedded alongside the metadata;
-**settlement-history ranking** so a proven endpoint (recent, successful, real
-settlements) outranks an untested listing. No Stellar catalog surfaces settlement history
-today; facilitator integration makes it cheap and real-time rather than requiring a
-separate chain-indexing pipeline. Wire surface is exactly the spec's:
-`/discovery/resources` with `type`/`payTo`/`scheme`/`network`/`extensions`/`limit`/`offset`,
-`/discovery/search` with `query`, cursor pagination, and honest `partialResults`.
+**Search** (built - ADR 0002, implemented in `packages/discovery/src/search/`): hybrid
+retrieval - real BM25F (`bm25.ts`, Postgres does tokenization only; field-weighted
+serviceName/tags > description > URL, k1/b as named constants) + a local, permissively-
+licensed embedding model (`all-MiniLM-L6-v2` via transformers.js, in-process, no external
+API) - fused with reciprocal rank fusion by rank position only, never a raw score
+comparison (`fusion.ts`); query-derived structured constraints (a network named in the
+query is a hard filter that excludes non-matching rows outright, not a ranking nudge -
+asset/price mentions apply the same way in a lighter-weight v1); synthetic per-resource
+queries generated at index time (template-based v1, not yet LLM-authored - see
+`synthetic-queries.ts`) and embedded alongside the metadata, generation-versioned so a
+model swap never compares old and new vectors against each other; **settlement-history
+ranking** as a tiebreak after fusion, not an override, so a proven endpoint only wins over
+an equally-relevant untested one. Vectors are stored in Postgres via **pgvector**
+(`vector` column, dimension-unconstrained so multiple generations coexist; cosine distance
+computed in SQL via `<=>`, no ANN index - exact scan, per ADR 0002's own reasoning at this
+corpus size). Embedding runs on its own async worker (`embedding-worker.ts`: Postgres-
+queue job claiming via `FOR UPDATE SKIP LOCKED`, lease-based crash recovery, exponential
+backoff, dead-lettering), never blocking cataloging or the request path. Wire surface is
+exactly the spec's: `/discovery/resources` with
+`type`/`payTo`/`scheme`/`network`/`extensions`/`limit`/`offset`, `/discovery/search` with
+`query`, cursor pagination, and honest `partialResults` (true whenever the dense arm
+errored or the embedding worker has a backlog, false only when the full pipeline ran).
 
 **Federation** - the answer to the open interop question (stellar/x402-stellar#50: the
 registration path for independent facilitators is undetermined):
@@ -224,12 +235,24 @@ client can settle.
 
 ### 3.6 `packages/eval-harness`
 
-Public, versioned search-quality evaluation: 100-200 golden queries with graded
-judgments (pooled from all rankers, documented rubric, LLM-assisted labeling with a
-human-audited sample, judge model ≠ generation model), scored on nDCG@10 / MRR /
-Recall@20 in CI - a ranking change ships only if it does not significantly regress
-against a held-out split. The same pipeline that generates synthetic per-resource queries
-feeds the judgment set. Anyone can re-run our numbers.
+Public, versioned search-quality evaluation, scored on nDCG@10 / MRR / Recall@20 for
+three configurations side by side (BM25-only, dense-only, fused+settlement) so the value
+each stage adds is visible, not blended into one number. A CI job
+(`.github/workflows/eval-harness.yml`) runs it on every change touching
+`packages/discovery/src/search/**` and fails the build if the fused configuration
+regresses past a documented threshold against `baseline.json`. Anyone can re-run
+`pnpm eval` and get the same numbers, modulo the catalog's actual contents at the time.
+
+**v1 scope, stated plainly rather than rounded up to the target:** the target is
+100-200 golden queries with judgments pooled across all three rankers, LLM-assisted
+labeling with a human-audited sample, and a judge model different from whatever
+generates synthetic queries/embeddings (ADR 0002). What's built today is 15 queries
+across the required categories (exact-name, paraphrase, filtered, no-result,
+adversarial) against an 18-resource seed catalog, judged in a single pass by the same
+model that built the harness - no separate judge model, no human audit yet. That gap is
+documented in `packages/eval-harness/README.md`, not hidden, and is the harness's
+highest-priority next step. See [`docs/benchmarks.md`](benchmarks.md) for the current
+numbers and what they show.
 
 ## 4. Trust boundaries - who could cheat, and what stops them
 
@@ -285,12 +308,13 @@ flowchart LR
 
     subgraph RIALTO["Rialto service"]
         F["Facilitator<br/>/verify /settle /supported<br/>channel accounts - fee sponsorship<br/>cost accounting - receipts"]
-        D["Discovery<br/>/discovery/resources /discovery/search<br/>integrity gauntlet - hybrid search<br/>settlement-history ranking"]
+        D["Discovery<br/>/discovery/resources /discovery/search<br/>integrity gauntlet - BM25 + dense fusion<br/>settlement-history ranking"]
+        W["Embedding worker<br/>FOR UPDATE SKIP LOCKED queue<br/>backoff - dead-letter"]
         EV["Eval harness<br/>golden queries - CI gate"]
     end
 
-    subgraph PG["PostgreSQL"]
-        C["Catalog + embeddings<br/>+ settlement stats<br/>(provenance-labeled)"]
+    subgraph PG["PostgreSQL (pgvector)"]
+        C["Catalog + embeddings (vector)<br/>+ settlement stats<br/>(provenance-labeled)"]
     end
 
     subgraph CHAIN["Stellar network"]
@@ -310,6 +334,7 @@ flowchart LR
     F -->|"upto: settle via contract"| U --> L
     F -->|"5. auto-catalog on settlement"| D
     D <--> C
+    W <--> C
     F -->|"6. receipt (tx hash)"| S --> A
     A -.->|"verify receipt on-ledger"| L
     D <-->|"register / ingest / cross-publish"| X

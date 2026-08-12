@@ -48,7 +48,9 @@ export default async function setup(): Promise<(() => Promise<void>) | void> {
     `POSTGRES_DB=${DB}`,
     '-p',
     `${PORT}:5432`,
-    'postgres:17-alpine',
+    // pgvector, not plain postgres - the embeddings table needs the vector
+    // extension (migrations/0003_pgvector.sql).
+    'pgvector/pgvector:pg17',
   ]);
 
   const deadline = Date.now() + 30_000;

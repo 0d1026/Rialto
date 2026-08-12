@@ -6,6 +6,8 @@ import { createApp } from './app.js';
 export { Catalog } from './catalog.js';
 export * from './validation.js';
 export { createApp } from './app.js';
+export { localEmbeddingModel, type EmbeddingModel } from './search/embedding-model.js';
+export { runWorkerOnce } from './search/embedding-worker.js';
 
 const logger = pino({ level: process.env.LOG_LEVEL ?? 'info' });
 

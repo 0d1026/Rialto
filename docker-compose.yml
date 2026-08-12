@@ -3,7 +3,9 @@
 # Testnet by default; see .env.example for every knob.
 services:
   postgres:
-    image: postgres:17-alpine
+    # pgvector, not plain postgres: discovery's embeddings table (dense
+    # retrieval, migrations/0003_pgvector.sql) needs the vector extension.
+    image: pgvector/pgvector:pg17
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rialto}
       POSTGRES_DB: rialto
@@ -29,6 +31,21 @@ services:
       postgres:
         condition: service_healthy
 
+  embed-worker:
+    build:
+      context: .
+      target: embed-worker
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-rialto}@postgres:5432/rialto
+      # first start downloads the model (~90MB) from the Hugging Face hub and
+      # caches it in this volume; subsequent restarts load from cache, offline.
+      EMBEDDING_CACHE_DIR: /cache/embedding-model
+    volumes:
+      - embedding-model-cache:/cache/embedding-model
+    depends_on:
+      postgres:
+        condition: service_healthy
+
   facilitator:
     build:
       context: .
@@ -47,3 +64,4 @@ services:
 
 volumes:
   catalog-data:
+  embedding-model-cache:

@@ -1,0 +1,223 @@
+/**
+ * The v1 golden-query eval catalog: 18 hand-authored resources spanning
+ * distinct topics, plus two deliberately adversarial entries (a keyword-
+ * stuffed near-duplicate, and a cross-network near-duplicate) so the query
+ * set can actually test what it claims to test.
+ *
+ * This is NOT the real ~14,000-entry production Bazaar index (ADR 0002)
+ * yet - runner.ts seeds this fixture set into a scratch Postgres so the
+ * harness is runnable and reproducible today. Swapping runner.ts to score
+ * against a live deployed catalog instead (once one exists at meaningful
+ * scale) is a follow-up, not a redesign - see the runner's header comment.
+ */
+import type { CleanEntryInput } from '@rialto/discovery';
+
+export interface SeedResource extends CleanEntryInput {
+  network: 'stellar:testnet' | 'stellar:pubnet';
+  amount: string;
+}
+
+export const SEED_CATALOG: SeedResource[] = [
+  {
+    resource: 'https://eval.example.com/weather-forecast',
+    type: 'http',
+    x402Version: 2,
+    network: 'stellar:testnet',
+    amount: '1000000',
+    accepts: [],
+    serviceName: 'WeatherCo',
+    description: 'Real-time weather forecast and precipitation data for any city',
+    tags: ['weather', 'forecast'],
+  },
+  {
+    resource: 'https://eval.example.com/climate-history',
+    type: 'http',
+    x402Version: 2,
+    network: 'stellar:testnet',
+    amount: '1000000',
+    accepts: [],
+    serviceName: 'ClimateArchive',
+    description: 'Historical climate and temperature records dataset',
+    tags: ['climate', 'history'],
+  },
+  {
+    resource: 'https://eval.example.com/stock-ticker',
+    type: 'http',
+    x402Version: 2,
+    network: 'stellar:pubnet',
+    amount: '2000000',
+    accepts: [],
+    serviceName: 'TickerPulse',
+    description: 'Real-time equity price and trading volume feed',
+    tags: ['finance', 'stocks'],
+  },
+  {
+    resource: 'https://eval.example.com/crypto-prices',
+    type: 'http',
+    x402Version: 2,
+    network: 'stellar:pubnet',
+    amount: '1500000',
+    accepts: [],
+    serviceName: 'CoinWatch',
+    description: 'Live cryptocurrency price feed across major exchanges',
+    tags: ['crypto', 'finance'],
+  },
+  {
+    resource: 'https://eval.example.com/translate-api',
+    type: 'http',
+    x402Version: 2,
+    network: 'stellar:testnet',
+    amount: '500000',
+    accepts: [],
+    serviceName: 'Polyglot',
+    description: 'Translate text between over 40 languages instantly',
+    tags: ['translation', 'language'],
+  },
+  {
+    resource: 'https://eval.example.com/geo-maps',
+    type: 'http',
+    x402Version: 2,
+    network: 'stellar:testnet',
+    amount: '800000',
+    accepts: [],
+    serviceName: 'MapRoute',
+    description: 'Turn-by-turn routing and geocoding for any address',
+    tags: ['maps', 'routing'],
+  },
+  {
+    resource: 'https://eval.example.com/image-resize',
+    type: 'http',
+    x402Version: 2,
+    network: 'stellar:pubnet',
+    amount: '300000',
+    accepts: [],
+    serviceName: 'PixelForge',
+    description: 'Resize, crop, and convert images on the fly',
+    tags: ['images', 'media'],
+  },
+  {
+    resource: 'https://eval.example.com/sentiment-analysis',
+    type: 'http',
+    x402Version: 2,
+    network: 'stellar:testnet',
+    amount: '400000',
+    accepts: [],
+    serviceName: 'MoodLens',
+    description: 'Analyze the sentiment of text as positive, negative, or neutral',
+    tags: ['nlp', 'sentiment'],
+  },
+  {
+    resource: 'https://eval.example.com/news-headlines',
+    type: 'http',
+    x402Version: 2,
+    network: 'stellar:testnet',
+    amount: '200000',
+    accepts: [],
+    serviceName: 'HeadlineFeed',
+    description: 'Breaking news headlines from global sources',
+    tags: ['news'],
+  },
+  {
+    resource: 'https://eval.example.com/flight-status',
+    type: 'http',
+    x402Version: 2,
+    network: 'stellar:pubnet',
+    amount: '600000',
+    accepts: [],
+    serviceName: 'SkyTrack',
+    description: 'Real-time flight status and delay predictions',
+    tags: ['travel', 'flights'],
+  },
+  {
+    resource: 'https://eval.example.com/recipe-finder',
+    type: 'http',
+    x402Version: 2,
+    network: 'stellar:testnet',
+    amount: '250000',
+    accepts: [],
+    serviceName: 'ChefMatch',
+    description: 'Find recipes based on ingredients you have on hand',
+    tags: ['food', 'recipes'],
+  },
+  {
+    resource: 'https://eval.example.com/currency-convert',
+    type: 'http',
+    x402Version: 2,
+    network: 'stellar:testnet',
+    amount: '2', // deliberately cheap - target of the "under 5" price-filter query
+    accepts: [],
+    serviceName: 'RateFlow',
+    description: 'Convert between world currencies at live exchange rates',
+    tags: ['finance', 'currency'],
+  },
+  {
+    resource: 'https://eval.example.com/sports-scores',
+    type: 'http',
+    x402Version: 2,
+    network: 'stellar:pubnet',
+    amount: '350000',
+    accepts: [],
+    serviceName: 'ScoreBoard',
+    description: 'Live scores and stats for major sports leagues',
+    tags: ['sports'],
+  },
+  {
+    resource: 'https://eval.example.com/air-quality',
+    type: 'http',
+    x402Version: 2,
+    network: 'stellar:testnet',
+    amount: '450000',
+    accepts: [],
+    serviceName: 'AirCheck',
+    description: 'Real-time air quality index for any location',
+    tags: ['environment', 'air-quality'],
+  },
+  {
+    // Adversarial: keyword-stuffed near-duplicate of weather-forecast, on a
+    // DIFFERENT network so it also serves the network hard-filter test.
+    resource: 'https://eval.example.com/weather-forecast-stuffed',
+    type: 'http',
+    x402Version: 2,
+    network: 'stellar:pubnet',
+    amount: '1000000',
+    accepts: [],
+    serviceName: 'SkyCast',
+    description:
+      'weather weather weather forecast forecast forecast rain rain rain temperature temperature best weather app',
+    tags: ['weather', 'weather', 'forecast', 'rain'],
+  },
+  {
+    resource: 'https://eval.example.com/stock-ticker-tool',
+    type: 'mcp',
+    toolName: 'get_price',
+    x402Version: 2,
+    network: 'stellar:pubnet',
+    amount: '100000',
+    accepts: [],
+    serviceName: 'TickerPulse',
+    description: 'Fetch the latest price for a given ticker symbol',
+    tags: ['finance', 'stocks'],
+  },
+  {
+    resource: 'https://eval.example.com/traffic-conditions',
+    type: 'http',
+    x402Version: 2,
+    network: 'stellar:testnet',
+    amount: '300000',
+    accepts: [],
+    serviceName: 'RoadPulse',
+    description: 'Live traffic conditions and congestion data for highways',
+    tags: ['traffic', 'maps'],
+  },
+  {
+    resource: 'https://eval.example.com/podcast-transcripts',
+    type: 'http',
+    x402Version: 2,
+    network: 'stellar:testnet',
+    amount: '700000',
+    accepts: [],
+    serviceName: 'VoiceText',
+    description: 'Transcribe podcast episodes to searchable text',
+    tags: ['audio', 'transcription'],
+  },
+];

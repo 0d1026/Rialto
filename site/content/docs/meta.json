@@ -2,6 +2,7 @@
   "pages": [
     "index",
     "architecture",
+    "benchmarks",
     "scheme-upto-stellar",
     "decisions",
     "guides"

@@ -12,11 +12,13 @@
     "typecheck": "tsc --noEmit",
     "typecheck:test": "tsc -p tsconfig.test.json",
     "ingest": "tsx src/ingest-cli.ts",
+    "embed-worker": "tsx src/embedding-worker-cli.ts",
     "test": "vitest run test/unit test/integration",
     "test:watch": "vitest test/unit test/integration",
     "test:live": "vitest run --config vitest.live.config.ts"
   },
   "dependencies": {
+    "@huggingface/transformers": "^4.2.0",
     "@x402/core": "^2.22.0",
     "@x402/extensions": "^2.22.0",
     "cors": "^2.8.6",
@@ -24,6 +26,7 @@
     "express": "^5.2.1",
     "helmet": "^8.2.0",
     "pg": "^8.13.0",
+    "pgvector": "^0.3.0",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
     "zod": "^4.4.3"
