@@ -1,8 +1,9 @@
 /**
  * Postgres-facing orchestration for lexical search: candidate selection
- * (unchanged from the pre-BM25 implementation - tsquery match OR the ILIKE
- * fallback for short/partial queries) stays in SQL; ranking is real BM25F
- * (./bm25.ts) computed in application code, not ts_rank.
+ * (tsquery match OR the ILIKE fallback for short/partial queries, with an
+ * OR-relaxation retry when the strict AND interpretation of a multi-word
+ * query finds nothing - see rankLexicalCandidates) stays in SQL; ranking
+ * is real BM25F (./bm25.ts) computed in application code, not ts_rank.
  */
 import type pg from 'pg';
 import { toWire } from '../wire.js';
@@ -39,37 +40,78 @@ const FIELDS: FieldKey[] = ['a', 'b', 'c'];
  * hybrid.ts's fusion pipeline, which needs raw resource ids and rank order,
  * not paginated/wire-mapped items.
  */
-export async function rankLexicalCandidates(
-  pool: pg.Pool,
-  query: string,
-  opts: { type?: string; network?: string },
-): Promise<RankedLexicalCandidate[]> {
-  const params: unknown[] = [query];
-  let extraClause = '';
-  if (opts.type) {
-    params.push(opts.type);
-    extraClause += ` AND type = $${params.length}`;
-  }
-  if (opts.network) {
-    params.push(JSON.stringify([{ network: opts.network }]));
-    extraClause += ` AND accepts @> $${params.length}::jsonb`;
-  }
+/**
+ * websearch_to_tsquery ANDs bare multi-word queries by default ("weather
+ * service" -> weather & service) - a resource matching only some of a
+ * natural-language query's words is invisible to that strict
+ * interpretation even when it's plausibly the right answer, and the
+ * ILIKE fallback only catches a literal substring of the *whole* query
+ * string, so it doesn't rescue this case either ("weather service" isn't
+ * a substring of "Weather API"). Joining the words with "OR" (itself
+ * dropped as an English stopword by to_tsvector, so it never becomes a
+ * real search term) gets websearch_to_tsquery to treat them as a union
+ * instead of a conjunction.
+ */
+function toOrQuery(query: string): string | null {
+  const words = query.trim().split(/\s+/).filter(Boolean);
+  return words.length < 2 ? null : words.join(' OR ');
+}
 
-  // Candidate selection: unchanged from the pre-BM25 implementation. A row
-  // matches if the FTS tsquery matches OR the ILIKE fallback catches a
-  // short/partial substring FTS tokenization would miss (05.search-ranking
-  // covers this specifically and must keep passing unmodified).
-  const candidates = await pool.query(
+async function selectCandidates(
+  pool: pg.Pool,
+  tsqueryText: string,
+  ilikeText: string,
+  extraClause: string,
+  extraParams: unknown[],
+): Promise<pg.QueryResult> {
+  return pool.query(
     `SELECT *,
             to_tsvector('english', search_a)::text AS tsv_a_text,
             to_tsvector('english', search_b)::text AS tsv_b_text,
             to_tsvector('english', search_c)::text AS tsv_c_text
      FROM resources
      WHERE (search_tsv @@ websearch_to_tsquery('english', $1)
-            OR resource ILIKE '%' || $1 || '%'
-            OR service_name ILIKE '%' || $1 || '%') ${extraClause}`,
-    params,
+            OR resource ILIKE '%' || $2 || '%'
+            OR service_name ILIKE '%' || $2 || '%') ${extraClause}`,
+    [tsqueryText, ilikeText, ...extraParams],
   );
+}
+
+export async function rankLexicalCandidates(
+  pool: pg.Pool,
+  query: string,
+  opts: { type?: string; network?: string },
+): Promise<RankedLexicalCandidate[]> {
+  const extraParams: unknown[] = [];
+  let extraClause = '';
+  if (opts.type) {
+    extraParams.push(opts.type);
+    extraClause += ` AND type = $${extraParams.length + 2}`;
+  }
+  if (opts.network) {
+    extraParams.push(JSON.stringify([{ network: opts.network }]));
+    extraClause += ` AND accepts @> $${extraParams.length + 2}::jsonb`;
+  }
+
+  // Candidate selection, strict interpretation first: a row matches if the
+  // FTS tsquery (AND semantics for multi-word queries) matches, OR the
+  // ILIKE fallback catches a short/partial substring FTS tokenization
+  // would miss (05.search-ranking covers this specifically and must keep
+  // passing unmodified - this first attempt is byte-for-byte what it was
+  // before the OR fallback existed).
+  let candidates = await selectCandidates(pool, query, query, extraClause, extraParams);
+
+  // Relaxed fallback, only when the strict interpretation found literally
+  // nothing: OR semantics instead of AND, so a resource matching even one
+  // of the query's words is a candidate. Never runs when the strict
+  // attempt already found something, so it can't loosen (or re-rank) a
+  // query that was already working.
+  if (candidates.rows.length === 0) {
+    const orQuery = toOrQuery(query);
+    if (orQuery) {
+      candidates = await selectCandidates(pool, orQuery, query, extraClause, extraParams);
+    }
+  }
 
   if (candidates.rows.length === 0) return [];
 
