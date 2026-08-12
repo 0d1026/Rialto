@@ -2,7 +2,9 @@
   "pages": [
     "index",
     "architecture",
+    "search",
     "benchmarks",
+    "threat-model",
     "scheme-upto-stellar",
     "decisions",
     "guides"

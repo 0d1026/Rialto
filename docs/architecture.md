@@ -5,7 +5,7 @@ Everything in this document is grounded in one of: the x402 specs as merged upst
 `@x402/stellar` package as published (v2.21.0), SDF's reference implementation, our own
 settled testnet runs, or an accepted design decision in `docs/decisions/`. The contract
 research spike has landed as a full spec in this repo
-([`docs/scheme_upto_stellar.md`](scheme_upto_stellar.md)); §3.3 matches it.
+([`docs/specs/scheme_upto_stellar.md`](specs/scheme_upto_stellar.md)); §3.3 matches it.
 
 ---
 
@@ -188,7 +188,7 @@ garden; neither will Rialto be one.
 ### 3.3 `contracts/upto-settlement` - the capped-payment contract
 
 **Design accepted (ADR 0001); mechanics finalized in the spec merged into this repo**
-([`docs/scheme_upto_stellar.md`](scheme_upto_stellar.md)). The cap is enforced on-chain
+([`docs/specs/scheme_upto_stellar.md`](specs/scheme_upto_stellar.md)). The cap is enforced on-chain
 by a minimal, stateless Soroban contract (`UptoSettlement`): the client signs
 **(recipient, asset, max amount, validAfter, expirationLedger, salt, autoRevoke)** in
 one auth entry - the actual amount is deliberately excluded from the signature and
