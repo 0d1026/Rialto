@@ -1,6 +1,6 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp";
-import { Config } from "./config";
-
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { Config } from "./config.js";
+import { registerSearchResourcesTool } from "./tools/search-resources.js";
 
 export function createServer(config: Config): McpServer {
   const server = new McpServer({
@@ -8,7 +8,7 @@ export function createServer(config: Config): McpServer {
     version: "0.1.0",
   });
 
- 
+  registerSearchResourcesTool(server, config);
 
   return server;
 }
