@@ -3,3 +3,5 @@ dist/
 target/
 .env
 *.log
+.agent/
+.gstack/

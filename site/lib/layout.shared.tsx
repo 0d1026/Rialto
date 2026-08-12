@@ -6,7 +6,7 @@ export function baseOptions(): BaseLayoutProps {
     nav: {
       title: (
         <>
-          <Image src="/logo.png" alt="Rialto" width={22} height={29} />
+          <Image src="/logo-mark-transparent.png" alt="Rialto" width={22} height={29} />
           <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 700 }}>
             Rialto
           </span>

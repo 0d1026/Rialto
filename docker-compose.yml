@@ -1,0 +1,67 @@
+# Self-host the full Rialto stack with one command:
+#   FACILITATOR_STELLAR_PRIVATE_KEY=S... docker compose up
+# Testnet by default; see .env.example for every knob.
+services:
+  postgres:
+    # pgvector, not plain postgres: discovery's embeddings table (dense
+    # retrieval, migrations/0003_pgvector.sql) needs the vector extension.
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rialto}
+      POSTGRES_DB: rialto
+    volumes:
+      - catalog-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  discovery:
+    build:
+      context: .
+      target: discovery
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-rialto}@postgres:5432/rialto
+      PORT: 4030
+      INGEST_TOKEN: ${INGEST_TOKEN:-}
+    ports:
+      - "4030:4030"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  embed-worker:
+    build:
+      context: .
+      target: embed-worker
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-rialto}@postgres:5432/rialto
+      # first start downloads the model (~90MB) from the Hugging Face hub and
+      # caches it in this volume; subsequent restarts load from cache, offline.
+      EMBEDDING_CACHE_DIR: /cache/embedding-model
+    volumes:
+      - embedding-model-cache:/cache/embedding-model
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  facilitator:
+    build:
+      context: .
+      target: facilitator
+    environment:
+      FACILITATOR_STELLAR_PRIVATE_KEY: ${FACILITATOR_STELLAR_PRIVATE_KEY:?set your facilitator secret}
+      STELLAR_NETWORK: ${STELLAR_NETWORK:-stellar:testnet}
+      MAX_TRANSACTION_FEE_STROOPS: ${MAX_TRANSACTION_FEE_STROOPS:-200000}
+      DISCOVERY_INGEST_URL: http://discovery:4030/internal/settlement-events
+      INGEST_TOKEN: ${INGEST_TOKEN:-}
+      PORT: 4022
+    ports:
+      - "4022:4022"
+    depends_on:
+      - discovery
+
+volumes:
+  catalog-data:
+  embedding-model-cache:

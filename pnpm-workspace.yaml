@@ -1,3 +1,15 @@
 packages:
   - "packages/*"
   - "site"
+
+# Pre-approved postinstall scripts (pnpm's script-approval security model
+# blocks these by default): esbuild (vitest's transform), onnxruntime-node
+# and sharp (@huggingface/transformers, discovery's embedding model),
+# protobufjs (a transformers.js dependency). All well-known, native-binary-
+# fetching packages - approved here so CI and fresh clones don't need an
+# interactive `pnpm approve-builds` step.
+onlyBuiltDependencies:
+  - esbuild
+  - onnxruntime-node
+  - protobufjs
+  - sharp

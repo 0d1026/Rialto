@@ -1,0 +1,47 @@
+{
+  "name": "@rialto/discovery",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "typecheck:test": "tsc -p tsconfig.test.json",
+    "ingest": "tsx src/ingest-cli.ts",
+    "embed-worker": "tsx src/embedding-worker-cli.ts",
+    "test": "vitest run test/unit test/integration",
+    "test:watch": "vitest test/unit test/integration",
+    "test:live": "vitest run --config vitest.live.config.ts"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^4.2.0",
+    "@x402/core": "^2.22.0",
+    "@x402/extensions": "^2.22.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "helmet": "^8.2.0",
+    "pg": "^8.13.0",
+    "pgvector": "^0.3.0",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@rialto/facilitator": "workspace:*",
+    "@rialto/shared": "workspace:*",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.11.0",
+    "@types/supertest": "^6.0.2",
+    "supertest": "^7.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

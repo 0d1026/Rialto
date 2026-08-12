@@ -1,0 +1,25 @@
+{
+  "generatedAt": "2026-08-12T10:06:34.582Z",
+  "queryCount": 15,
+  "catalogSize": 18,
+  "configurations": [
+    {
+      "label": "bm25-only",
+      "ndcgAt10": 0.44180861027398816,
+      "mrr": 0.3333333333333333,
+      "recallAt20": 0.43333333333333335
+    },
+    {
+      "label": "dense-only",
+      "ndcgAt10": 0.980653982759791,
+      "mrr": 0.8666666666666667,
+      "recallAt20": 1
+    },
+    {
+      "label": "fused+settlement",
+      "ndcgAt10": 0.980653982759791,
+      "mrr": 0.8666666666666667,
+      "recallAt20": 1
+    }
+  ]
+}
