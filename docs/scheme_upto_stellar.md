@@ -199,7 +199,7 @@ renamed or duplicated.
    `PaymentRequired` header whose `accepts[]` entry has `scheme: "upto"` and
    `amount` set to the **maximum** the client may be charged.
 3. **Client** computes `expirationLedger` off-chain:
-   `currentLedger + ceil(maxTimeoutSeconds / estimatedLedgerSeconds) + margin`
+   `currentLedger + ceil(maxTimeoutSeconds / estimatedLedgerSeconds)`
    (fallback `estimatedLedgerSeconds = 5`)  see § Time Semantics. This
    value, along with `deadline`, becomes part of what the client signs; the
    contract never computes it.
@@ -318,7 +318,7 @@ filled in at settlement time.
   "asset": "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA",
   "maxAmount": "10000000",
   "validAfter": 1755000000,
-  "deadline": 1755000600,
+  "deadline": 1755000060,
   "expirationLedger": 1245678,
   "salt": "9f3a45bb4d6d275472c3213d4932...",
   "autoRevoke": true,
@@ -360,7 +360,7 @@ filled in at settlement time.
 - `autoRevoke`: clients SHOULD set this to `true`. If `false`, any unspent
   allowance remains until `expirationLedger`, although the stateless
   settlement contract has no independently callable path that can consume it.
-- `salt`: **REQUIRED**. A client-chosen, application-layer discriminator
+- `salt`: **REQUIRED**. A client-chosen, application-layer discriminator 
   **not** a cryptographic requirement. Soroban assigns each signed
   authorization entry its own nonce at signing time, independent of its
   arguments, so two authorizations remain independently replay-safe even if
@@ -471,9 +471,9 @@ recomputed value would almost never equal the one in the signed entry,
 since real time (and therefore ledger sequence) reliably advances in
 between. The call would fail authorization essentially every time, not
 occasionally. The fix is for the client to choose `expiration_ledger`
-themselves (off-chain, using the same padding formula previously proposed
-for on-chain use  current ledger + margin for `deadline`'s remaining
-time), sign it as part of the witness, and have `settle()` simply replay
+themselves (off-chain, using `currentLedger + ceil(maxTimeoutSeconds /
+estimatedLedgerSeconds)` with the network estimate or the 5-second fallback),
+sign it as part of the witness, and have `settle()` simply replay
 that exact value into its `approve()` calls rather than deriving anything.
 
 ## Facilitator Verification Rules (MUST)
@@ -546,8 +546,11 @@ the assumption that `/verify` already ran.
   off-chain.
 - The credential's `signatureExpirationLedger` MUST equal
   `payload.expirationLedger`. That value MUST be at least the current ledger
-  and MUST NOT exceed `currentLedger + ceil(max(0, deadline - now) /
-  estimatedLedgerSeconds) + margin`.
+  and MUST NOT exceed `currentLedger + ceil(requirements.maxTimeoutSeconds /
+  estimatedLedgerSeconds)`. Implementations SHOULD use the current network
+  estimate for `estimatedLedgerSeconds` when available and MUST fall back to
+  `5` seconds when no estimate is available. The same rule applies
+  independently at `/verify` and `/settle`.
   Since the client chooses this value themselves (§ `UptoSettlement`
   Contract Interface), the facilitator MUST independently bound it rather
   than trusting it  an excessively distant `expirationLedger` would leave
@@ -672,10 +675,11 @@ scheme touches both:
   conversion (~5s average, not a guarantee).
 
 Implementations MUST treat `deadline` as authoritative. **The client**
-computes `expirationLedger` off-chain, with generous padding beyond
-`deadline`: `currentLedger + ceil(maxTimeoutSeconds /
-estimatedLedgerSeconds) + margin` (fallback `estimatedLedgerSeconds = 5`),
-and uses that same value as the auth entry's
+computes `expirationLedger` off-chain using
+`currentLedger + ceil(maxTimeoutSeconds / estimatedLedgerSeconds)` and uses
+the current network estimate for `estimatedLedgerSeconds` when available
+(fallback `estimatedLedgerSeconds = 5`). The client uses that same value as
+the auth entry's
 `signatureExpirationLedger`. The contract does not compute or
 adjust this value at settlement time (§ `UptoSettlement` Contract
 Interface explains why: a contract-side recomputation would almost never
@@ -780,11 +784,21 @@ boundary:
   `ScVal` expected by `__check_auth`. The x402 client and facilitator do not
   interpret that proof.
 
-In either case, the adapter MUST return the same credential address, nonce,
-expiration, root invocation, and sub-invocation tree it received; only the
-credential signature/proof may be populated. Implementations MUST compare
-the returned entry against the unsigned entry and reject any other mutation.
-An enforcing-mode simulation then provides the authoritative verification.
+In either case, the adapter MUST preserve the credential variant, credential
+address, nonce, root invocation, and sub-invocation tree it received. The only
+permitted mutations are:
+
+- setting `signatureExpirationLedger` to `payload.expirationLedger`; and
+- populating the credential signature/proof fields.
+
+This exception for `signatureExpirationLedger` is required because entries
+returned by recording-mode simulation have their final expiration populated
+as part of signing. Implementations MUST compare the returned entry against
+the unsigned entry and reject every other mutation. If delegated credentials
+are used, the delegated wrapper and signer tree MUST be constructed before
+the adapter receives the entry; signing MUST NOT introduce or rewrite that
+tree. An enforcing-mode simulation then provides the authoritative
+verification.
 
 ### Implementer References
 
