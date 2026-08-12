@@ -8,11 +8,13 @@
     "start": "next start"
   },
   "dependencies": {
+    "@google/model-viewer": "^4.3.1",
     "fumadocs-core": "16.14.3",
     "fumadocs-mdx": "15.2.3",
     "fumadocs-ui": "16.14.3",
     "lucide-react": "^0.544.0",
     "mermaid": "11.16.1",
+    "motion": "^13.1.0",
     "next": "16.3.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"

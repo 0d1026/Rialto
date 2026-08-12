@@ -1,0 +1,534 @@
+/*
+  Landing page styles, scoped entirely under `.rialto-landing` so they can
+  never leak into or collide with the docs site's Tailwind/Fumadocs styles.
+  All custom properties and keyframes are prefixed `--rialto-` / `rialto-`
+  for the same reason.
+
+  Theme accent tokens: --rialto-accent and --rialto-accent-soft must always
+  be updated TOGETHER to flip themes (CSS cannot derive a tinted "soft"
+  background from a solid color, so both are declared separately). The two
+  supported brand themes are:
+    blue (default):  --rialto-accent: #3B6FEB;  --rialto-accent-soft: rgba(59,111,235,.14);
+    violet (alt):     --rialto-accent: #7C3AED;  --rialto-accent-soft: rgba(124,58,237,.14);
+  --rialto-accent-alt is NOT part of the theme swap — it stays hardcoded
+  violet regardless of theme, because the source design hardcodes violet on
+  a few specific elements (Discovery pillar card border, ADR 0002 left
+  border, and some constellation SVG lines/circles) independent of accent.
+*/
+
+.rialto-landing {
+  /* Theme accent (swap both together) */
+  --rialto-accent: #3b6feb;
+  --rialto-accent-soft: rgba(59, 111, 235, 0.14);
+
+  /* Fixed brand violet, independent of theme */
+  --rialto-accent-alt: #7c3aed;
+  --rialto-accent-alt-soft: rgba(124, 58, 237, 0.14);
+  --rialto-accent-alt-border: rgba(124, 58, 237, 0.35);
+
+  /* Background / panel fills */
+  --rialto-bg-page: #0b0f1a;
+  --rialto-bg-panel: #111b27;
+  --rialto-bg-terminal: #0d1420;
+
+  /* Text */
+  --rialto-text-primary: #f2f4fa;
+  --rialto-text-heading: #ffffff;
+  --rialto-text-body-1: #dce2f0;
+  --rialto-text-body-2: #b8c0d4;
+  --rialto-text-body-3: #aeb7cb;
+  --rialto-text-muted-1: #8b95ac;
+  --rialto-text-muted-2: #7c8aa3;
+  --rialto-text-muted-3: #6b7590;
+
+  /* Borders / dividers */
+  --rialto-border-faint: rgba(255, 255, 255, 0.06);
+  --rialto-border-soft: rgba(255, 255, 255, 0.08);
+  --rialto-border-medium: rgba(255, 255, 255, 0.1);
+  --rialto-border-strong: rgba(255, 255, 255, 0.14);
+  --rialto-border-hairline: rgba(255, 255, 255, 0.18);
+
+  /* Links */
+  --rialto-link: #6c9bff;
+  --rialto-link-hover: #9dc0ff;
+
+  /* Inline code chips */
+  --rialto-code-bg: rgba(255, 255, 255, 0.07);
+  --rialto-code-text: #dce2f0;
+
+  /* Radii */
+  --rialto-radius-card: 16px;
+  --rialto-radius-terminal: 14px;
+  --rialto-radius-button: 9px;
+  --rialto-radius-pill: 999px;
+  --rialto-radius-chip: 7px;
+
+  /* Layout */
+  --rialto-content-max-width: 1160px;
+  --rialto-content-padding-x: clamp(20px, 5vw, 48px);
+  --rialto-section-padding-top: clamp(56px, 7vw, 90px);
+  --rialto-section-padding-bottom: clamp(70px, 8vw, 110px);
+
+  /* Grid gaps */
+  --rialto-grid-gap-card: 20px;
+
+  /* Display font pairing (landing-scoped, does not affect /docs):
+     geometric bold sans for headings, tracked small-caps sans for nav/labels. */
+  --rialto-font-heading: var(--font-poppins), sans-serif;
+  --rialto-font-label: var(--font-nunito-sans), sans-serif;
+
+  /* Single canonical easing curve — every hover/reveal transition on the
+     landing page uses this and only this, so motion reads as one system
+     instead of a pile of slightly-different eases. Framer Motion's EASE
+     constant in Reveal.tsx must be kept numerically in sync with this. */
+  --rialto-ease: cubic-bezier(0.16, 0.84, 0.44, 1);
+
+  background: var(--rialto-bg-page);
+  color: var(--rialto-text-primary);
+  font-family: var(--font-inter), sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+@keyframes rialto-rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Opacity-only entrance — used where the element's `transform` is already
+   scroll-driven (Parallax/motion), so the CSS keyframe doesn't fight the
+   inline transform Framer Motion applies each frame. */
+@keyframes rialto-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes rialto-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rialto-landing .rialto-nav {
+  animation: rialto-slide-down 0.6s var(--rialto-ease) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rialto-landing .rialto-nav {
+    animation: none;
+  }
+}
+
+@keyframes rialto-twinkle {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+@keyframes rialto-blink {
+  0%,
+  55% {
+    opacity: 1;
+  }
+  56%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes rialto-blob-float {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  50% {
+    transform: rotate(8deg) scale(1.05);
+  }
+  100% {
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+.rialto-landing .rialto-hero-blob {
+  transform-origin: center;
+  animation: rialto-blob-float 14s var(--rialto-ease) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rialto-landing .rialto-hero-blob {
+    animation: none;
+  }
+}
+
+.rialto-landing a {
+  color: var(--rialto-link);
+  text-decoration: none;
+}
+
+.rialto-landing a:hover {
+  color: var(--rialto-link-hover);
+}
+
+.rialto-landing img {
+  max-width: 100%;
+}
+
+/* Layout */
+
+.rialto-landing .rialto-section {
+  position: relative;
+  /* z-index:0 (not just position:relative) is what actually makes this
+     element establish its own stacking context — without an explicit
+     z-index, a `.rialto-section-decor` z-index:-1 child escapes to the
+     nearest ancestor that DOES have one and can end up painted behind the
+     whole page background instead of just behind this section's text. */
+  z-index: 0;
+  max-width: var(--rialto-content-max-width);
+  margin: 0 auto;
+  padding: 0 var(--rialto-content-padding-x) var(--rialto-section-padding-bottom);
+}
+
+.rialto-landing .rialto-section-decor {
+  position: absolute;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.rialto-landing .rialto-section--divided {
+  border-top: 1px solid var(--rialto-border-soft);
+  padding-top: var(--rialto-section-padding-top);
+}
+
+.rialto-landing .rialto-section-eyebrow-block {
+  margin-bottom: 44px;
+  max-width: 640px;
+}
+
+.rialto-landing .rialto-eyebrow {
+  font-family: var(--rialto-font-label);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rialto-text-muted-2);
+  font-weight: 700;
+  margin: 0 0 14px;
+}
+
+.rialto-landing .rialto-section-heading {
+  font-family: var(--rialto-font-heading);
+  font-size: clamp(30px, 4.2vw, 46px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--rialto-text-heading);
+  margin: 0;
+  font-weight: 700;
+  text-wrap: balance;
+}
+
+/* Row list — a hairline-divided stack of huge-type rows (package names,
+   capability lists) that dim to rialto-text-muted-3 at rest and brighten to
+   full white on hover/focus, with a small accent marker that appears the
+   same way. Replaces a card grid where the content is really a short,
+   ordered list rather than independent objects. */
+.rialto-landing .rialto-row-list {
+  border-top: 1px solid var(--rialto-border-soft);
+}
+
+.rialto-landing .rialto-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px 48px;
+  align-items: start;
+  padding: clamp(22px, 3vw, 34px) 4px;
+  border-bottom: 1px solid var(--rialto-border-soft);
+}
+
+.rialto-landing .rialto-row-head {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+}
+
+.rialto-landing .rialto-row-marker {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+  transform: translateY(-0.55em);
+  background: var(--rialto-text-muted-3);
+  transition: background-color 260ms var(--rialto-ease), box-shadow 260ms var(--rialto-ease);
+}
+
+.rialto-landing .rialto-row-name {
+  font-family: var(--rialto-font-heading);
+  font-size: clamp(30px, 5vw, 54px);
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--rialto-text-muted-3);
+  transition: color 320ms var(--rialto-ease);
+  margin: 0;
+}
+
+.rialto-landing .rialto-row-body {
+  opacity: 0.55;
+  transition: opacity 320ms var(--rialto-ease);
+}
+
+.rialto-landing .rialto-row:hover .rialto-row-name,
+.rialto-landing .rialto-row:focus-within .rialto-row-name {
+  color: var(--rialto-text-heading);
+}
+
+.rialto-landing .rialto-row:hover .rialto-row-body,
+.rialto-landing .rialto-row:focus-within .rialto-row-body {
+  opacity: 1;
+}
+
+.rialto-landing .rialto-row:hover .rialto-row-marker,
+.rialto-landing .rialto-row:focus-within .rialto-row-marker {
+  background: var(--rialto-row-accent, var(--rialto-accent));
+  box-shadow: 0 0 0 5px var(--rialto-row-accent-soft, var(--rialto-accent-soft));
+}
+
+.rialto-landing .rialto-row-tag {
+  position: absolute;
+  top: clamp(22px, 3vw, 34px);
+  right: 4px;
+  font-family: var(--rialto-font-label);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--rialto-row-accent, var(--rialto-accent));
+}
+
+@media (max-width: 760px) {
+  .rialto-landing .rialto-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Cards */
+
+.rialto-landing .rialto-card,
+.rialto-landing .rialto-card--bordered,
+.rialto-landing .rialto-card--accent-left {
+  transition: transform 220ms var(--rialto-ease), box-shadow 220ms var(--rialto-ease), border-color 220ms var(--rialto-ease);
+}
+
+.rialto-landing .rialto-card:hover,
+.rialto-landing .rialto-card--bordered:hover,
+.rialto-landing .rialto-card--accent-left:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 40px -20px var(--rialto-accent-soft);
+}
+
+.rialto-landing .rialto-card {
+  background: var(--rialto-bg-panel);
+  border: 1px solid var(--rialto-border-soft);
+  border-radius: var(--rialto-radius-card);
+  padding: 30px;
+}
+
+.rialto-landing .rialto-card--bordered {
+  border: 1px solid var(--rialto-border-soft);
+  border-radius: var(--rialto-radius-card);
+  padding: 30px;
+}
+
+.rialto-landing .rialto-card--accent-left {
+  background: var(--rialto-bg-panel);
+  border-radius: var(--rialto-radius-card);
+  padding: 32px;
+  border-left: 3px solid var(--rialto-accent);
+}
+
+.rialto-landing .rialto-card--accent-left--violet {
+  border-left: 3px solid var(--rialto-accent-alt);
+}
+
+/* Pill-shaped eyebrow badge (optional modifier on .rialto-eyebrow) */
+.rialto-landing .rialto-eyebrow--pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--rialto-radius-pill);
+  background: var(--rialto-border-faint);
+  border: 1px solid var(--rialto-border-soft);
+  margin: 0 0 14px;
+}
+
+/* Nav links: "text roll" hover — two stacked labels, the container clips to
+   one line and slides up by one line-height on hover (pattern lifted from
+   the reference site's duplicated nav-label markup). */
+.rialto-landing .rialto-nav-link {
+  display: inline-block;
+  overflow: hidden;
+  height: 1.3em;
+  font-family: var(--rialto-font-label);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.rialto-landing .rialto-nav-link-track {
+  display: flex;
+  flex-direction: column;
+  transition: transform 320ms var(--rialto-ease);
+}
+
+.rialto-landing .rialto-nav-link:hover .rialto-nav-link-track {
+  transform: translateY(-1.3em);
+}
+
+.rialto-landing .rialto-nav-link-line {
+  line-height: 1.3em;
+  height: 1.3em;
+}
+
+.rialto-landing .rialto-nav-link-line--hover {
+  color: var(--rialto-text-primary);
+}
+
+/* Buttons */
+
+.rialto-landing .rialto-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 13px 24px;
+  border-radius: var(--rialto-radius-button);
+  transition: transform 180ms var(--rialto-ease), box-shadow 180ms var(--rialto-ease), filter 180ms var(--rialto-ease);
+}
+
+.rialto-landing .rialto-btn--primary {
+  color: #0b0f1a;
+  background: var(--rialto-accent);
+}
+
+.rialto-landing .rialto-btn--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px -8px var(--rialto-accent-soft);
+  filter: brightness(1.08);
+}
+
+.rialto-landing .rialto-btn--outline {
+  color: var(--rialto-text-primary);
+  border: 1px solid var(--rialto-border-hairline);
+}
+
+.rialto-landing .rialto-btn--outline:hover {
+  transform: translateY(-1px);
+  border-color: var(--rialto-border-hairline);
+  background: var(--rialto-border-faint);
+}
+
+.rialto-landing .rialto-btn--small {
+  font-size: 14px;
+  padding: 11px 20px;
+  white-space: nowrap;
+}
+
+.rialto-landing .rialto-pill-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0b0f1a;
+  background: #f2f4fa;
+  padding: 9px 18px;
+  border-radius: 8px;
+}
+
+/* Inline code chip */
+
+.rialto-landing .rialto-code-chip {
+  background: var(--rialto-code-bg);
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: var(--rialto-code-text);
+}
+
+.rialto-landing .rialto-code-chip--lg {
+  padding: 2px 7px;
+  border-radius: 5px;
+  font-size: 0.9em;
+}
+
+/* Metric / feature chips */
+
+.rialto-landing .rialto-metric-chip {
+  font-size: 13px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: var(--rialto-border-faint);
+  color: var(--rialto-text-body-1);
+}
+
+.rialto-landing .rialto-feature-chip {
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--rialto-border-faint);
+  color: var(--rialto-text-body-1);
+}
+
+/* Pipeline chips (Discovery pillar) */
+
+.rialto-landing .rialto-pipeline-chip {
+  padding: 6px 10px;
+  border-radius: var(--rialto-radius-chip);
+  background: var(--rialto-border-faint);
+  color: var(--rialto-text-body-1);
+}
+
+.rialto-landing .rialto-pipeline-chip--violet-soft {
+  background: rgba(124, 58, 237, 0.16);
+  color: #c6a9fa;
+}
+
+.rialto-landing .rialto-pipeline-chip--violet-strong {
+  background: rgba(124, 58, 237, 0.28);
+  color: #ffffff;
+}
+
+.rialto-landing .rialto-pipeline-connector {
+  color: #5a6480;
+}
+
+/* Hero column animations */
+
+.rialto-landing .rialto-hero-col-left {
+  animation: rialto-rise-in 0.7s var(--rialto-ease) both;
+}
+
+.rialto-landing .rialto-hero-col-right {
+  animation: rialto-fade-in 0.8s var(--rialto-ease) 0.1s both;
+}
