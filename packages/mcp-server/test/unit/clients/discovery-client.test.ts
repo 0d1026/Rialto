@@ -10,6 +10,7 @@ const config: Config = {
   FACILITATOR_URL: "http://facilitator.test",
   NETWORK: "stellar:testnet",
   RIALTO_SERVICE_TIMEOUT_MS: 2_000,
+  FACILITATOR_SERVICE_TIMEOUT_MS: 20_000,
   SELLER_REQUEST_TIMEOUT_MS: 10_000,
   MCP_TRANSPORT: "stdio",
 };
