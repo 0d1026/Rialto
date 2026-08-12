@@ -1,5 +1,5 @@
 import { proofCards } from './content';
-import { Reveal, Stagger, StaggerItem, RevealMask } from './Reveal';
+import { Parallax, Reveal, Stagger, StaggerItem, RevealMask, TiltCard } from './Reveal';
 
 function withInlineCode(text: string) {
   const parts = text.split(/(@rialto\/[a-z-]+)/g);
@@ -17,6 +17,15 @@ function withInlineCode(text: string) {
 export default function Proof() {
   return (
     <section className="rialto-section rialto-section--divided">
+      <Parallax speed={-65} className="rialto-section-decor" style={{ bottom: 10, left: -50 }}>
+        <svg width="140" height="140" viewBox="0 0 140 140" style={{ opacity: 0.4 }}>
+          <line x1="10" y1="130" x2="130" y2="10" stroke="var(--rialto-accent)" strokeWidth="1" opacity="0.4" />
+          <path d="M30 100 l8 0 l0 8" fill="none" stroke="var(--rialto-accent)" strokeWidth="1.4" />
+          <path d="M70 60 l8 0 l0 8" fill="none" stroke="var(--rialto-accent-alt)" strokeWidth="1.4" />
+          <path d="M100 30 l8 0 l0 8" fill="none" stroke="var(--rialto-accent)" strokeWidth="1.4" />
+        </svg>
+      </Parallax>
+
       <Reveal>
         <div className="rialto-section-eyebrow-block" style={{ marginBottom: 40 }}>
           <p className="rialto-eyebrow">Proof, not claims</p>
@@ -29,7 +38,7 @@ export default function Proof() {
       <Stagger style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 'var(--rialto-grid-gap-card)' }}>
         {proofCards.map((card) => (
           <StaggerItem key={card.title}>
-            <div className="rialto-card--bordered">
+            <TiltCard className="rialto-card--bordered">
               <p style={{ fontFamily: 'var(--rialto-font-heading)', fontSize: 17, color: '#FFFFFF', margin: '0 0 10px', fontWeight: 600 }}>
                 {card.title}
               </p>
@@ -52,7 +61,7 @@ export default function Proof() {
                   ))}
                 </div>
               )}
-            </div>
+            </TiltCard>
           </StaggerItem>
         ))}
       </Stagger>

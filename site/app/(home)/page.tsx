@@ -1,4 +1,5 @@
 import Nav from '@/components/landing/Nav';
+import SmoothScroll from '@/components/landing/SmoothScroll';
 import Hero from '@/components/landing/Hero';
 import GapSection from '@/components/landing/GapSection';
 import Pillars from '@/components/landing/Pillars';
@@ -13,6 +14,7 @@ import '@/components/landing/landing.css';
 export default function HomePage() {
   return (
     <div className="rialto-landing">
+      <SmoothScroll />
       <Nav />
       <Hero />
       <GapSection />

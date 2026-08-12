@@ -1,5 +1,5 @@
 import { AGENTVAULT_URL, FCR_X402_URL, fcrX402FeatureChips, priorWorkFeatureChips } from './content';
-import { Reveal, Stagger, StaggerItem, RevealMask } from './Reveal';
+import { Reveal, Stagger, StaggerItem, RevealMask, TiltCard } from './Reveal';
 
 export default function PriorWork() {
   return (
@@ -15,8 +15,9 @@ export default function PriorWork() {
 
       <Stagger staggerDelay={0.12}>
         <StaggerItem>
-          <div
+          <TiltCard
             className="rialto-card"
+            maxTilt={4}
             style={{
               padding: 'clamp(28px,4vw,40px)',
               display: 'flex',
@@ -46,12 +47,13 @@ export default function PriorWork() {
             <a href={AGENTVAULT_URL} className="rialto-btn rialto-btn--outline rialto-btn--small">
               View AgentVault ↗
             </a>
-          </div>
+          </TiltCard>
         </StaggerItem>
 
         <StaggerItem>
-          <div
+          <TiltCard
             className="rialto-card"
+            maxTilt={4}
             style={{
               marginTop: 20,
               padding: 'clamp(28px,4vw,40px)',
@@ -82,7 +84,7 @@ export default function PriorWork() {
             <a href={FCR_X402_URL} className="rialto-btn rialto-btn--outline rialto-btn--small">
               View FCR-x402 ↗
             </a>
-          </div>
+          </TiltCard>
         </StaggerItem>
       </Stagger>
     </section>

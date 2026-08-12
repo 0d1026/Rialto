@@ -1,5 +1,5 @@
 import { timelineSteps } from './content';
-import { Reveal, Stagger, StaggerItem, RevealMask } from './Reveal';
+import { Parallax, Reveal, Stagger, StaggerItem, RevealMask } from './Reveal';
 
 function withInlineCode(text: string) {
   const parts = text.split(/(seller-sdk|search_resources|paid_call)/g);
@@ -17,6 +17,15 @@ function withInlineCode(text: string) {
 export default function HowItWorks() {
   return (
     <section className="rialto-section rialto-section--divided">
+      <Parallax speed={-60} className="rialto-section-decor" style={{ top: 40, right: -30 }}>
+        <svg width="120" height="200" viewBox="0 0 120 200" style={{ opacity: 0.35 }}>
+          <line x1="60" y1="0" x2="60" y2="200" stroke="var(--rialto-accent)" strokeWidth="1" strokeDasharray="2 8" />
+          <circle cx="60" cy="30" r="3" fill="var(--rialto-accent)" />
+          <circle cx="60" cy="100" r="3" fill="var(--rialto-accent-alt)" />
+          <circle cx="60" cy="170" r="3" fill="var(--rialto-accent)" />
+        </svg>
+      </Parallax>
+
       <Reveal>
         <div className="rialto-section-eyebrow-block" style={{ marginBottom: 48 }}>
           <p className="rialto-eyebrow rialto-eyebrow--pill">How it works</p>

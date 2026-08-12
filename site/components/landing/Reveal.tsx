@@ -1,13 +1,15 @@
 'use client';
 
-import { motion, useReducedMotion, type Variants } from 'motion/react';
-import type { CSSProperties, ReactNode } from 'react';
+import { motion, useReducedMotion, useScroll, useTransform, type Variants } from 'motion/react';
+import { useRef, type CSSProperties, type MouseEvent, type ReactNode } from 'react';
 
-const EASE = [0.34, 1.1, 0.64, 1] as const;
+// Kept numerically in sync with --rialto-ease in landing.css — one curve
+// for every hover/reveal transition on the landing page.
+const EASE = [0.16, 0.84, 0.44, 1] as const;
 
 const itemVariants: Variants = {
-  hidden: { opacity: 0, y: 16 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: EASE } },
+  hidden: { opacity: 0, y: 18, scale: 0.98 },
+  visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.6, ease: EASE } },
 };
 
 const viewport = { once: true, margin: '0px 0px -10% 0px' };
@@ -91,6 +93,87 @@ export function StaggerItem({ children, className }: { children: ReactNode; clas
     <motion.div className={className} variants={itemVariants}>
       {children}
     </motion.div>
+  );
+}
+
+/**
+ * Translates children vertically as the page scrolls past their container,
+ * so decorative layers drift at different rates instead of moving 1:1 with
+ * scroll. `speed` is roughly the total travel in em-like units — positive
+ * values drift down slower than the page, negative values counter-scroll.
+ */
+export function Parallax({
+  children,
+  speed = 40,
+  className,
+  style,
+}: {
+  children: ReactNode;
+  speed?: number;
+  className?: string;
+  style?: CSSProperties;
+}) {
+  const reduceMotion = useReducedMotion();
+  const ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
+  const y = useTransform(scrollYProgress, [0, 1], [-speed, speed]);
+
+  if (reduceMotion) {
+    return (
+      <div ref={ref} className={className} style={style}>
+        {children}
+      </div>
+    );
+  }
+
+  return (
+    <motion.div ref={ref} className={className} style={{ ...style, y }}>
+      {children}
+    </motion.div>
+  );
+}
+
+/**
+ * Wraps a card so it tilts toward the cursor on hover (perspective
+ * rotateX/rotateY, like the hero crystal's camera-follow but driven by CSS
+ * transform on a plain element instead of a 3D scene). Applies the class's
+ * existing hover lift itself (baked into the same transform string) since an
+ * inline `style.transform` always wins over a CSS `:hover { transform }`
+ * rule — the lift would otherwise silently stop working once this wraps it.
+ */
+export function TiltCard({
+  children,
+  className,
+  style,
+  maxTilt = 7,
+}: {
+  children: ReactNode;
+  className?: string;
+  style?: CSSProperties;
+  maxTilt?: number;
+}) {
+  const reduceMotion = useReducedMotion();
+  const ref = useRef<HTMLDivElement>(null);
+
+  function handleMouseMove(e: MouseEvent<HTMLDivElement>) {
+    if (reduceMotion) return;
+    const el = ref.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const nx = (e.clientX - rect.left) / rect.width - 0.5;
+    const ny = (e.clientY - rect.top) / rect.height - 0.5;
+    el.style.transform = `translateY(-3px) perspective(700px) rotateX(${(-ny * maxTilt).toFixed(2)}deg) rotateY(${(nx * maxTilt).toFixed(2)}deg)`;
+  }
+
+  function handleMouseLeave() {
+    const el = ref.current;
+    if (el) el.style.transform = '';
+  }
+
+  return (
+    <div ref={ref} className={className} style={style} onMouseMove={handleMouseMove} onMouseLeave={handleMouseLeave}>
+      {children}
+    </div>
   );
 }
 

@@ -4,6 +4,7 @@ import { navLinks, REPO_URL } from './content';
 export default function Nav() {
   return (
     <nav
+      className="rialto-nav"
       style={{
         display: 'flex',
         alignItems: 'center',

@@ -1,5 +1,5 @@
 import { REPO_URL } from './content';
-import { Reveal, RevealMask } from './Reveal';
+import { Parallax, Reveal, RevealMask, TiltCard } from './Reveal';
 
 export default function Cta() {
   return (
@@ -7,8 +7,21 @@ export default function Cta() {
       className="rialto-section"
       style={{ paddingBottom: 'clamp(80px,9vw,120px)' }}
     >
+      <Parallax speed={55} className="rialto-section-decor" style={{ top: -40, right: -40 }}>
+        <svg width="260" height="260" viewBox="0 0 260 260" style={{ opacity: 0.35 }}>
+          <circle cx="130" cy="130" r="110" fill="none" stroke="var(--rialto-accent)" strokeWidth="1" />
+          <circle cx="130" cy="130" r="70" fill="none" stroke="var(--rialto-accent-alt)" strokeWidth="1" opacity="0.6" />
+        </svg>
+      </Parallax>
+      <Parallax speed={-55} className="rialto-section-decor" style={{ bottom: -20, left: -40 }}>
+        <svg width="200" height="200" viewBox="0 0 200 200" style={{ opacity: 0.3 }}>
+          <circle cx="100" cy="100" r="90" fill="none" stroke="var(--rialto-accent)" strokeWidth="1" strokeDasharray="3 9" />
+        </svg>
+      </Parallax>
+
       <Reveal>
-        <div
+        <TiltCard
+          maxTilt={3}
           style={{
             borderRadius: 20,
             background: 'linear-gradient(135deg, #111B27 0%, #0E1420 100%)',
@@ -33,7 +46,7 @@ export default function Cta() {
               Architecture doc
             </a>
           </div>
-        </div>
+        </TiltCard>
       </Reveal>
     </section>
   );
