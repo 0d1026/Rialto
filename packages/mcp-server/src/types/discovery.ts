@@ -5,13 +5,17 @@
  * not this one.
  */
 
-export interface DiscoveryAccept {
-  scheme: string;
-  network: string;
-  payTo: string;
-  asset: string;
-  amount: string;
-}
+import type { PaymentRequirements } from "./payment.js";
+
+/**
+ * Discovery's `accepts` entries are exactly x402 PaymentRequirements. Note:
+ * discovery's ingest pipeline (packages/discovery's /internal/settlement-events
+ * handler) doesn't currently accept or store `extra`/`maxTimeoutSeconds` on
+ * an accepts entry, so in practice those fields are absent on every resource
+ * until that pipeline is extended - they're typed here because the wire
+ * contract (and the `accepts` JSONB column) already allows them.
+ */
+export type DiscoveryAccept = PaymentRequirements;
 
 export interface DiscoveryResourceMetadata {
   provenance: string;
@@ -60,4 +64,15 @@ export interface DiscoverySearchParams {
    * the response after the fact.
    */
   network?: "stellar:testnet" | "stellar:pubnet";
+}
+
+export interface DiscoveryGetResourceResponse {
+  x402Version: number;
+  item: DiscoveryResource;
+}
+
+export interface DiscoveryGetResourceParams {
+  resource: string;
+  /** Disambiguates an MCP resource exposing multiple tools; rows key on (resource, toolName). */
+  toolName?: string;
 }

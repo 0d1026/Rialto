@@ -6,11 +6,15 @@
 	"scripts": {
 		"test": "vitest run test/unit",
 		"test:watch": "vitest test/unit",
+		"test:live": "vitest run --config vitest.live.config.ts",
+		"example:seller": "tsx scripts/local-seller.ts",
 		"typecheck": "tsc --noEmit",
 		"typecheck:test": "tsc -p tsconfig.test.json"
 	},
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "^1.30.0",
+		"@x402/core": "^2.22.0",
+		"@x402/stellar": "^2.22.0",
 		"zod": "^4.4.3"
 	},
 	"devDependencies": {

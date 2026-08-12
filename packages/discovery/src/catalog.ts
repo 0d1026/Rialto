@@ -325,6 +325,21 @@ export class Catalog {
     return { items, total: candidates.length };
   }
 
+  /**
+   * Single-resource lookup for GET /discovery/resource. Rows key on
+   * (resource, tool_name) - HTTP resources live at tool_name = '' (see the
+   * module docstring), so an MCP resource exposing multiple tools needs
+   * `toolName` to disambiguate; omitting it only ever matches the HTTP row.
+   */
+  async getByResource(resource: string, toolName?: string): Promise<unknown | null> {
+    const params: unknown[] = [resource, toolName ?? ''];
+    const res = await this.pool.query(
+      'SELECT * FROM resources WHERE resource = $1 AND tool_name = $2',
+      params,
+    );
+    return res.rows[0] ? toWire(res.rows[0]) : null;
+  }
+
   async registerPeer(name: string, baseUrl: string, catalogUrl: string): Promise<void> {
     await this.pool.query(
       `INSERT INTO federation_peers (name, base_url, catalog_url)
