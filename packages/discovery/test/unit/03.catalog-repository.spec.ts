@@ -102,3 +102,67 @@ describe('catalog repository: settlement -> row lifecycle', () => {
     expect(row.metadata.settlementCount).toBe(CONCURRENCY);
   });
 });
+
+describe('catalog repository: getByResource', () => {
+  let catalog: Catalog;
+
+  beforeAll(async () => {
+    catalog = await Catalog.connect(testDatabaseUrl());
+  });
+
+  afterAll(async () => {
+    await catalog?.close();
+  });
+
+  beforeEach(async () => {
+    await resetDb();
+  });
+
+  it('returns null when no row matches the resource', async () => {
+    expect(await catalog.getByResource('https://nothing.example/x')).toBeNull();
+  });
+
+  it('finds an HTTP resource (tool_name = "") by resource alone', async () => {
+    const app = createApp(catalog, { embeddingModel: fakeEmbeddingModel() });
+    await request(app).post('/internal/settlement-events').send(VALID_EVENT).expect(202);
+
+    const found = await catalog.getByResource(VALID_EVENT.resource);
+    expect(found).not.toBeNull();
+    expect((found as { resource: string }).resource).toBe(VALID_EVENT.resource);
+  });
+
+  it('an MCP resource with multiple tools requires toolName to disambiguate', async () => {
+    await catalog.add(
+      {
+        resource: 'mcp://weather.example/server',
+        type: 'mcp',
+        toolName: 'get_forecast',
+        x402Version: 2,
+        accepts: [{ scheme: 'exact', network: 'stellar:testnet', payTo: 'G1', asset: 'native', amount: '1' }],
+        serviceName: 'get_forecast tool',
+      },
+      'registered',
+      null,
+    );
+    await catalog.add(
+      {
+        resource: 'mcp://weather.example/server',
+        type: 'mcp',
+        toolName: 'get_alerts',
+        x402Version: 2,
+        accepts: [{ scheme: 'exact', network: 'stellar:testnet', payTo: 'G1', asset: 'native', amount: '2' }],
+        serviceName: 'get_alerts tool',
+      },
+      'registered',
+      null,
+    );
+
+    expect(await catalog.getByResource('mcp://weather.example/server')).toBeNull();
+
+    const forecast = await catalog.getByResource('mcp://weather.example/server', 'get_forecast');
+    expect((forecast as { serviceName: string }).serviceName).toBe('get_forecast tool');
+
+    const alerts = await catalog.getByResource('mcp://weather.example/server', 'get_alerts');
+    expect((alerts as { serviceName: string }).serviceName).toBe('get_alerts tool');
+  });
+});
