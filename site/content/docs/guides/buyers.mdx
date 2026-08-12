@@ -5,10 +5,45 @@ description: Find services, pay per request, hold verifiable receipts.
 ---
 
 You are building an agent (or any client) that needs services it can pay for
-programmatically. Through Rialto's catalog your agent searches in plain language,
-gets back entries with exact payment terms and a real settlement track record, pays
-via x402, and holds a receipt it can verify against the public ledger - all through
-the MCP server, from inside the agent's own runtime.
+programmatically. Rialto's catalog is searchable in plain language, returns entries
+with exact payment terms and a real settlement track record, and your agent pays via
+x402 and holds a receipt it can verify against the public ledger.
 
-> Design stage - the MCP server and client quickstart land here with the first
-> milestone. The [architecture](/docs/architecture) describes the full loop.
+## What's real today
+
+`GET /discovery/search` and `GET /discovery/resources` are live, tested HTTP
+endpoints - hybrid search (keyword + semantic, [how it actually
+works](/docs/search/lexical-bm25)) with real ranking, not a stub. A plain HTTP request
+works right now:
+
+```bash
+curl "https://<your-discovery-host>/discovery/search?query=weather+forecast"
+```
+
+returns a ranked list of matching resources, each with its payment requirements
+(`accepts`: scheme, network, `payTo`, asset, amount) ready to hand to an x402 client.
+A query naming a network (`"weather api on stellar:testnet"`) filters to that network
+exactly - see [fusion and structured constraints](/docs/search/fusion-and-ranking) for
+how that's enforced as a hard filter, not a ranking nudge.
+
+**Not yet built**: the MCP server that wraps this behind `search_resources` and
+`paid_call` tools inside an agent runtime. Until it lands, call the HTTP endpoints
+directly (as above) and use `@x402/stellar`'s canonical client for the pay step - the
+facilitator's `/verify` and `/settle` implement the same v2 wire format that client
+already speaks.
+
+## Every rejection has a reason
+
+Both the facilitator and discovery return a coded, non-null reason on every failure -
+`{"error":{"code":"...", "reason":"..."}}` - never a bare exception, never an HTML
+error page. See the [threat model](/docs/threat-model)'s §4.1 for a case where that
+contract was briefly broken and how it was closed, and the shared error-code list in
+`packages/shared/src/types/error-codes.ts` for every code your client might need to
+handle.
+
+## Where to go next
+
+- [Architecture](/docs/architecture) - the full discover → pay → verify flow
+- [How search works](/docs/search/lexical-bm25) - so you know what a query will and
+  won't match
+- [Benchmarks](/docs/benchmarks) - real nDCG/MRR/Recall numbers, not a marketing claim
