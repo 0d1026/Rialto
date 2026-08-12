@@ -39,12 +39,12 @@ export default function Proof() {
         {proofCards.map((card) => (
           <StaggerItem key={card.title}>
             <TiltCard className="rialto-card--bordered">
-              <p style={{ fontFamily: 'var(--rialto-font-heading)', fontSize: 17, color: '#FFFFFF', margin: '0 0 10px', fontWeight: 600 }}>
+              <p style={{ fontFamily: 'var(--rialto-font-heading)', fontSize: 'clamp(17px,1.15vw,20px)', color: '#FFFFFF', margin: '0 0 10px', fontWeight: 600 }}>
                 {card.title}
               </p>
               <p
                 style={{
-                  fontSize: 15,
+                  fontSize: 'clamp(15px,1vw,17px)',
                   lineHeight: 1.65,
                   color: 'var(--rialto-text-body-3)',
                   margin: card.metrics ? '0 0 16px' : 0,

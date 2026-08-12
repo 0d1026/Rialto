@@ -30,7 +30,7 @@ export default function Pillars() {
               <h3 className="rialto-row-name">Facilitator</h3>
             </div>
             <div className="rialto-row-body">
-              <p style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--rialto-text-body-3)', margin: '0 0 14px' }}>
+              <p style={{ fontSize: 'clamp(15px,1vw,17px)', lineHeight: 1.6, color: 'var(--rialto-text-body-3)', margin: '0 0 14px' }}>
                 Canonical <code className="rialto-code-chip">/verify</code>, <code className="rialto-code-chip">/settle</code>,{' '}
                 <code className="rialto-code-chip">/supported</code>, built on the Apache-2.0{' '}
                 <code className="rialto-code-chip">@x402/stellar</code> package. We compose settlement, we do not
@@ -38,7 +38,7 @@ export default function Pillars() {
               </p>
               <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 9 }}>
                 {facilitatorBullets.map((bullet) => (
-                  <li key={bullet} style={{ fontSize: 14, color: 'var(--rialto-text-muted-1)', paddingLeft: 16, position: 'relative' }}>
+                  <li key={bullet} style={{ fontSize: 'clamp(14px,0.9vw,16px)', color: 'var(--rialto-text-muted-1)', paddingLeft: 16, position: 'relative' }}>
                     {bullet}
                     <span
                       style={{
@@ -75,7 +75,7 @@ export default function Pillars() {
               <h3 className="rialto-row-name">Discovery</h3>
             </div>
             <div className="rialto-row-body">
-              <p style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--rialto-text-body-3)', margin: '0 0 14px' }}>
+              <p style={{ fontSize: 'clamp(15px,1vw,17px)', lineHeight: 1.6, color: 'var(--rialto-text-body-3)', margin: '0 0 14px' }}>
                 Postgres-backed catalog with hybrid search and settlement-history ranking, so agents can tell
                 proven endpoints from stale ones.
               </p>
@@ -113,10 +113,10 @@ export default function Pillars() {
               <h3 className="rialto-row-name">Federation</h3>
             </div>
             <div className="rialto-row-body">
-              <p style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--rialto-text-body-3)', margin: '0 0 10px' }}>
+              <p style={{ fontSize: 'clamp(15px,1vw,17px)', lineHeight: 1.6, color: 'var(--rialto-text-body-3)', margin: '0 0 10px' }}>
                 Independent facilitators register. External catalogs are ingested and cross-published.
               </p>
-              <p style={{ fontFamily: 'var(--rialto-font-heading)', fontSize: 15, color: 'var(--rialto-accent)', margin: 0, fontWeight: 600 }}>
+              <p style={{ fontFamily: 'var(--rialto-font-heading)', fontSize: 'clamp(15px,1vw,17px)', color: 'var(--rialto-accent)', margin: 0, fontWeight: 600 }}>
                 Settles anywhere. Findable everywhere.
               </p>
             </div>

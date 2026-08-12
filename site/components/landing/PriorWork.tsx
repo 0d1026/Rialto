@@ -19,7 +19,7 @@ export default function PriorWork() {
             className="rialto-card"
             maxTilt={4}
             style={{
-              padding: 'clamp(28px,4vw,40px)',
+              padding: 'clamp(28px,4vw,48px)',
               display: 'flex',
               gap: 32,
               flexWrap: 'wrap',
@@ -28,10 +28,10 @@ export default function PriorWork() {
             }}
           >
             <div style={{ flex: '1 1 420px' }}>
-              <p style={{ fontFamily: 'var(--rialto-font-heading)', fontSize: 22, color: '#FFFFFF', margin: '0 0 10px', fontWeight: 600 }}>
+              <p style={{ fontFamily: 'var(--rialto-font-heading)', fontSize: 'clamp(22px,1.5vw,26px)', color: '#FFFFFF', margin: '0 0 10px', fontWeight: 600 }}>
                 AgentVault
               </p>
-              <p style={{ fontSize: 15, lineHeight: 1.65, color: 'var(--rialto-text-body-3)', margin: '0 0 20px', maxWidth: 560 }}>
+              <p style={{ fontSize: 'clamp(15px,1vw,17px)', lineHeight: 1.65, color: 'var(--rialto-text-body-3)', margin: '0 0 20px', maxWidth: 620 }}>
                 Verifiable storage infrastructure for autonomous AI agents: Filecoin Onchain Cloud, x402
                 micropayments, and ERC-8004 identity, so an agent can prove who it is and that its stored data is
                 real, not just that it paid for storage.
@@ -56,7 +56,7 @@ export default function PriorWork() {
             maxTilt={4}
             style={{
               marginTop: 20,
-              padding: 'clamp(28px,4vw,40px)',
+              padding: 'clamp(28px,4vw,48px)',
               display: 'flex',
               gap: 32,
               flexWrap: 'wrap',
@@ -65,10 +65,10 @@ export default function PriorWork() {
             }}
           >
             <div style={{ flex: '1 1 420px' }}>
-              <p style={{ fontFamily: 'var(--rialto-font-heading)', fontSize: 22, color: '#FFFFFF', margin: '0 0 10px', fontWeight: 600 }}>
+              <p style={{ fontFamily: 'var(--rialto-font-heading)', fontSize: 'clamp(22px,1.5vw,26px)', color: '#FFFFFF', margin: '0 0 10px', fontWeight: 600 }}>
                 FCR-x402
               </p>
-              <p style={{ fontSize: 15, lineHeight: 1.65, color: 'var(--rialto-text-body-3)', margin: '0 0 20px', maxWidth: 560 }}>
+              <p style={{ fontSize: 'clamp(15px,1vw,17px)', lineHeight: 1.65, color: 'var(--rialto-text-body-3)', margin: '0 0 20px', maxWidth: 620 }}>
                 An x402 facilitator for Filecoin using the Fast Confirmation Rule for sub-minute finality, with
                 instant EIP-3009 payments and a deferred escrow model for high-frequency calls, both backed by
                 facilitator-posted USDFC collateral.

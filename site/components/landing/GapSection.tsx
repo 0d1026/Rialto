@@ -19,7 +19,7 @@ export default function GapSection() {
           </p>
           <p
             style={{
-              fontSize: 'clamp(19px,2.2vw,24px)',
+              fontSize: 'clamp(19px,2.2vw,27px)',
               lineHeight: 1.55,
               color: 'var(--rialto-text-body-1)',
               margin: 0,
