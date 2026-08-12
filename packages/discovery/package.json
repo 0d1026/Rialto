@@ -1,0 +1,27 @@
+{
+  "name": "@rialto/discovery",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "ingest": "tsx src/ingest-cli.ts"
+  },
+  "dependencies": {
+    "@x402/core": "^2.22.0",
+    "@x402/extensions": "^2.22.0",
+    "express": "^5.2.1",
+    "pg": "^8.13.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.11.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0"
+  }
+}
