@@ -64,5 +64,5 @@ as well.
   so per-request caps (this contract) compose with per-agent budgets (account policies).
 - We author `scheme_upto_stellar.md` and contribute it upstream, coordinating with the
   authors already active in #71/#72. The spec lives in this repo:
-  [`docs/scheme_upto_stellar.md`](../scheme_upto_stellar.md) (both review fixes applied -
+  [`docs/specs/scheme_upto_stellar.md`](../specs/scheme_upto_stellar.md) (both review fixes applied -
   client-signed `expirationLedger` as the single expiry, required `salt`).

@@ -3,9 +3,12 @@
 **An x402 facilitator and Bazaar discovery layer for Stellar** - so AI agents can find,
 pay for, and verify paid services on `stellar:testnet` and `stellar:pubnet`.
 
-> Status: design stage. This repository holds the architecture, design decisions, and
-> package skeleton for our SCF #45 RFP submission ("x402 Facilitator with Bazaar
-> discovery support"). Code lands here milestone by milestone, in the open.
+> Status: building, in the open. `packages/shared`, `packages/facilitator`, and
+> `packages/discovery` (catalog, BM25 + dense hybrid search, federation) are implemented
+> and tested end to end, including a live testnet settlement path and a real search
+> eval harness (numbers: [`docs/benchmarks.md`](docs/benchmarks.md)). `packages/mcp-server`
+> and `packages/seller-sdk` are still design/skeleton. This is our SCF #45 RFP submission
+> ("x402 Facilitator with Bazaar discovery support"); code lands milestone by milestone.
 
 ## What Rialto is
 
@@ -41,7 +44,8 @@ Recorded in [`docs/decisions/`](docs/decisions/). The two that shape everything:
    settlement contract, because token allowances alone cannot bind the recipient or
    guarantee single settlement.
 2. [Search quality is proven, not asserted](docs/decisions/0002-search-stack-and-eval.md) -
-   hybrid retrieval on PostgreSQL with a public evaluation harness gating every change.
+   hybrid retrieval on PostgreSQL (pgvector) with a public evaluation harness gating
+   every change. Current numbers and honest v1 scope: [`docs/benchmarks.md`](docs/benchmarks.md).
 
 ## License
 

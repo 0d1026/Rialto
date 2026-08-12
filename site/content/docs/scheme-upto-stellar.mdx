@@ -273,8 +273,7 @@ renamed or duplicated.
 17. **Resource Server** grants the **Client** access upon successful
     settlement.
 
-```mermaid
-sequenceDiagram
+<Mermaid chart={`sequenceDiagram
     participant C as Client
     participant RS as Resource Server
     participant F as Facilitator
@@ -307,7 +306,7 @@ sequenceDiagram
 
     F-->>RS: SettlementResponse<br/>(success, amount = actual)
     RS-->>C: Grant access
-```
+`} />
 
 ## `PaymentPayload` `payload` Field
 

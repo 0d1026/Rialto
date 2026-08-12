@@ -1,0 +1,44 @@
+UptoSettlementSettleTest
+├── when payer authorization is missing
+│   └── it should reject the settlement
+├── when the current timestamp is before validAfter
+│   └── it should return NotYetValid
+├── when the current timestamp equals validAfter
+│   └── it should allow settlement
+├── when the current timestamp equals deadline
+│   └── it should return Expired
+├── when the current timestamp is after deadline
+│   └── it should return Expired
+├── when maxAmount is zero
+│   └── it should return InvalidAmount
+├── when maxAmount is negative
+│   └── it should return InvalidAmount
+├── when amount is negative
+│   └── it should return InvalidAmount
+├── when amount is greater than maxAmount
+│   └── it should return InvalidAmount
+├── when amount is zero
+│   ├── when autoRevoke is true
+│   │   ├── it should return zero
+│   │   ├── it should leave token balances unchanged
+│   │   └── it should clear the allowance
+│   └── when autoRevoke is false
+│       └── it should preserve the full allowance
+├── when amount is between zero and maxAmount
+│   ├── when autoRevoke is true
+│   │   ├── it should transfer the requested amount
+│   │   └── it should clear the remaining allowance
+│   └── when autoRevoke is false
+│       ├── it should transfer the requested amount
+│       └── it should preserve the remaining allowance
+├── when amount equals maxAmount
+│   ├── when autoRevoke is true
+│   │   └── it should transfer the maximum and leave no allowance
+│   └── when autoRevoke is false
+│       └── it should transfer the maximum and leave no allowance
+├── given the payer is a G-account
+│   └── it should record authorization for the G-account
+├── given the payer is a C-account
+│   └── it should record authorization for the C-account
+└── when the partial-settlement authorization tree is recorded
+    └── it should exclude amount and bind the root and approval arguments
