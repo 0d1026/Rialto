@@ -1,0 +1,214 @@
+# Search evaluation methodology: the metrics, derived
+
+Source: `packages/eval-harness/src/metrics.ts` (the math),
+`fixtures/golden-queries.ts`, `fixtures/seed-catalog.ts`, `fixtures/judgments.ts` (the
+data), `runner.ts` / `check-regression.ts` (the harness). Tests:
+`packages/eval-harness/test/metrics.spec.ts` (9 known-answer cases - every number
+below is one of those cases, not an invented illustration). Results and
+interpretation: [`benchmarks.md`](../benchmarks.md) - this document is the methodology
+underneath those numbers, not a restatement of them.
+
+## 1. Why evaluate at all
+
+"Real ranking, and how it's evaluated over time" is a stated requirement, not a nicety
+- a facilitator can settle payments correctly and still be useless if agents can't find
+the right service. Three metrics, computed against a graded judgment set, for **three
+configurations run side by side** (BM25-only, dense-only, fused+settlement) so the
+value each stage of the pipeline adds is visible on its own, not blended into one
+number that hides which part is actually doing the work.
+
+```mermaid
+flowchart LR
+    SEED["seed-catalog.ts<br/>18 resources"] --> CAT["seed into a scratch Postgres"]
+    CAT --> EMBED["embed via the real local model<br/>(not a test double)"]
+    EMBED --> Q["golden-queries.ts<br/>15 queries, 5 categories"]
+    Q --> C1["bm25-only"]
+    Q --> C2["dense-only"]
+    Q --> C3["fused+settlement"]
+    C1 --> SCORE["score each against<br/>judgments.ts (metrics.ts)"]
+    C2 --> SCORE
+    C3 --> SCORE
+    SCORE --> TABLE["printed table:<br/>nDCG@10 / MRR / Recall@20<br/>per configuration"]
+    TABLE --> CI["check-regression.ts:<br/>compare fused+settlement<br/>vs. baseline.json"]
+```
+
+## 2. nDCG@10 - normalized Discounted Cumulative Gain
+
+Answers: *of the results actually returned, in the order returned, how good is this
+specific ranking* - rewarding getting the single best result into position 1 far more
+than getting a mediocre result there, and discounting relevant results the further
+down the list they land.
+
+### 2.1 DCG, built up
+
+For a ranked list, position `i` counted from **0**:
+
+```
+DCG@k = Σ_{i=0}^{k-1}  (2^grade_i - 1) / log2(i + 2)
+```
+
+Two deliberate choices in that formula:
+
+- **`2^grade - 1`** grows *exponentially* with grade, not linearly - a grade-3 result
+  contributes `2³-1 = 7`, not `3`. This is what makes nDCG reward the single best
+  result strongly, rather than treating "one grade-3 result" as equivalent to "three
+  grade-1 results."
+- **`log2(i + 2)`** is the position discount. At `i=0` (first position), this is
+  `log2(2) = 1` - no discount. At `i=1`, `log2(3) ≈ 1.585`. At `i=9` (10th position),
+  `log2(11) ≈ 3.459` - roughly a 3.5x discount by the bottom of a top-10 list. The `+2`
+  (rather than `+1`) is what makes position 0 discount by exactly 1 instead of being
+  undefined (`log2(1) = 0`, division by zero).
+
+### 2.2 Normalizing: nDCG = DCG / IDCG
+
+Raw DCG isn't comparable across queries - a query with five genuinely relevant results
+available can score a higher raw DCG than one with only one relevant result exists at
+all, even with a *worse* ranking. **IDCG** (ideal DCG) is the DCG of the best possible
+ordering for that query - the same judged-relevant results, sorted by grade descending
+- and `nDCG = DCG / IDCG` rescales every query onto the same 0-to-1 scale: 1.0 always
+means "this is the best possible answer for this specific query," regardless of how
+many relevant results exist.
+
+**Convention, stated explicitly rather than left implicit**: if a query has *zero*
+judged-relevant results at all, IDCG is 0 and the division is undefined - `ndcgAtK`
+returns `1.0` by convention in that case (nothing to get wrong, so treated as a
+perfect score for that query rather than a broken one). This matters for the
+`no-result` query category specifically (§5) - a search engine correctly returning
+nothing for "compose a symphony from scratch" should score *well*, not be penalized
+for having nothing to rank.
+
+### 2.3 Worked example
+
+Judgments: `{a: 3, b: 1, c: 0}`. Ideal ordering is `[a, b]` (c is excluded - grade 0
+isn't "relevant," it just means "not judged relevant").
+
+```
+IDCG = (2³-1)/log2(2) + (2¹-1)/log2(3)
+     = 7/1 + 1/1.585
+     = 7.000 + 0.631
+     = 7.631
+```
+
+**Ranked exactly right, `[a, b, c]`:**
+```
+DCG = 7/log2(2) + 1/log2(3) + 0/log2(4) = 7.000 + 0.631 + 0 = 7.631
+nDCG = 7.631 / 7.631 = 1.000
+```
+
+**Best result NOT ranked first, `[b, a, c]`:**
+```
+DCG = (2¹-1)/log2(2) + (2³-1)/log2(3) + 0/log2(4)
+    = 1/1 + 7/1.585 + 0
+    = 1.000 + 4.416
+    = 5.416
+nDCG = 5.416 / 7.631 = 0.710
+```
+
+Putting the grade-1 result ahead of the grade-3 result costs about 29 points of nDCG -
+significant, but not catastrophic, because the correct result is still present, just
+one position too low. A ranking that omitted `a` entirely would score far worse than
+either of these (its DCG would only ever reach `1/1 = 1.0`, since without `a`,
+`2³-1=7` never enters the sum at all).
+
+## 3. MRR - Mean Reciprocal Rank
+
+```
+RR = 1 / (position of the first relevant result, 1-indexed)
+MRR = mean(RR across all queries)
+```
+
+Simpler and blunter than nDCG on purpose: it only asks "where's the *first* correct
+answer," not "how good is the whole list." First position → `1.0`. Second → `0.5`.
+Nothing relevant anywhere in the returned list → `0`. It doesn't care whether the rest
+of the list is well-ordered at all - which is exactly why it's a useful complement to
+nDCG (whole-list quality) and Recall (whether relevant results appear at all,
+regardless of position) rather than a replacement for either.
+
+From `benchmarks.md`'s real numbers: BM25-only's `MRR = 0.333` means the average query's
+first relevant result lands around **position 3** (`1/3 ≈ 0.333`); dense/fused's
+`MRR = 0.867` means it's landing close to position 1 almost every time.
+
+## 4. Recall@K
+
+```
+Recall@K = (# relevant results found in the top K) / (total # relevant results that exist)
+```
+(convention: `1.0` if a query has zero relevant results at all - nothing to recall, so
+trivially satisfied, same reasoning as nDCG's zero-IDCG case)
+
+The only one of the three metrics that's **position-independent**: a relevant result
+at position 19 counts exactly the same as one at position 1, as long as it's within
+the top K. This is the "did we even surface it at all" check, deliberately blind to
+ranking quality - a query could have perfect Recall@20 and terrible nDCG@10
+simultaneously (everything relevant showed up, just badly ordered), which is precisely
+why reporting all three side by side matters more than any one alone.
+
+## 5. The golden query set
+
+15 queries (`golden-queries.ts`), deliberately smaller than the eventual 100-200
+target - an honestly-scoped v1, not a shortcut hidden as a full evaluation. Five
+required categories, each testing something the other four can't:
+
+- **exact-name** - a service's literal name. The easiest case; every configuration
+  should handle this.
+- **paraphrase** - no vocabulary overlap with the answer's own text ("is it going to
+  rain tomorrow" for a service describing itself as "precipitation and temperature
+  predictions"). This is the category that separates BM25 from dense - see
+  `benchmarks.md`'s finding that BM25-only scores far lower here specifically, not
+  uniformly worse.
+- **filtered** - network/asset/price constraints, testing the hard-filter mechanism in
+  [fusion-and-ranking.md](fusion-and-ranking.md), not ranking quality at all.
+- **no-result** - queries with no correct answer in the catalog at all ("predict next
+  week lottery numbers"). Tests that the system returns *nothing*, correctly, rather
+  than a confident wrong guess - this is what the §2.2 zero-IDCG convention exists to
+  score fairly.
+- **adversarial** - a genuine listing against a keyword-stuffed near-duplicate
+  (`weather-forecast` vs. `weather-forecast-stuffed`, tags repeated, description
+  reading "weather weather weather forecast forecast forecast..."). Tests whether
+  ranking rewards term-stuffing over genuine relevance - see §1's BM25F field-weighting
+  in [lexical-bm25.md](lexical-bm25.md) for the mechanism meant to resist this.
+
+## 6. Judgments: methodology and its stated limitation
+
+Graded 0-3 (`judgments.ts`): 3 = directly answers the query, 2 = on-topic but not the
+best answer, 1 = tangentially related *or* on-topic-but-low-quality (the adversarial
+category's stuffed listing gets a 1, not a 0 - it genuinely is about the right topic,
+it's just not trustworthy), 0 = not relevant, or fails an explicit hard constraint in
+the query regardless of topical relevance (a wrong-network resource is graded 0 for a
+network-filtered query specifically, even if it would score 3 for the same text
+without the network mention).
+
+At this catalog's size (18 resources), every resource was judged against every query
+directly, rather than pooling candidates from the three rankers' actual outputs first -
+more thorough than pooling, and cheap enough at this scale to just do.
+
+**Stated plainly, not smoothed over**: [ADR 0002](../decisions/0002-search-stack-and-eval.md)
+calls for LLM-assisted labeling with a tracked human-audit sample and a judge model
+different from whatever generates synthetic queries/embeddings. Neither is true of this
+v1 - there was no separately-provisioned judge model available in the environment this
+was built in, and no independent human audit pass has run. These judgments were
+produced in a single pass by the model that also built the harness. This is the single
+largest methodology gap against the target, and the harness's highest-priority next
+step - not a footnote, the actual state of things.
+
+## 7. The CI regression gate
+
+`check-regression.ts` re-runs the full harness and compares the **`fused+settlement`**
+configuration only (not all three) against `baseline.json`, failing the build if any
+metric drops by more than `0.02` absolute. Two deliberate choices:
+
+- **Only the fused configuration gates CI**, because it's the only one actually served
+  in production (`GET /discovery/search` always runs the full hybrid pipeline) -
+  BM25-only and dense-only are reported for comparison in `benchmarks.md`, but a
+  regression in either alone, with fusion compensating, isn't necessarily a real
+  regression for users.
+- **`0.02` absolute, not relative or a hard equality check** - small enough to catch a
+  real regression, loose enough that floating-point noise or an intentional one-line
+  ranking tweak doesn't spuriously fail CI. Not derived from data (there isn't enough
+  query volume yet to compute a statistically-grounded threshold) - a reasonable
+  starting point, explicitly named as such, like every other untuned constant in this
+  system.
+
+A ranking change *meant* to move these numbers updates `baseline.json` deliberately,
+as its own reviewed change - the gate exists to catch accidental regressions, not to
+freeze the numbers permanently.

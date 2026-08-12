@@ -1,0 +1,236 @@
+# Dense retrieval: embeddings, the worker queue, and generation versioning
+
+Source: `packages/discovery/src/search/embedding-model.ts`, `embedding-worker.ts`,
+`dense.ts`, `synthetic-queries.ts`, `migrations/0002_dense_retrieval.sql`,
+`migrations/0003_pgvector.sql`. Tests: `test/unit/11.dense-retrieval.spec.ts` (7 cases,
+including a real-model paraphrase proof and a simulated worker-crash recovery).
+
+## 1. What this arm does that lexical search structurally cannot
+
+[Lexical search](lexical-bm25.md) matches words. Dense retrieval matches *meaning*: a
+query and a resource description are each turned into a vector (a point in a
+384-dimensional space), and "relevant" is approximated as "nearby in that space" -
+independent of whether they share a single literal word. "Is it going to rain
+tomorrow" and "Real-time weather forecast and precipitation data" share zero
+vocabulary and would score zero under BM25 no matter how the constants were tuned;
+they land close together in embedding space because the model was trained so that
+semantically similar sentences do.
+
+## 2. Cosine similarity, worked
+
+Given two vectors, cosine similarity measures the angle between them, not their
+magnitude:
+
+```
+similarity(a, b) = (a · b) / (‖a‖ · ‖b‖)
+```
+
+where `a · b` is the dot product and `‖a‖` is the Euclidean norm (length) of `a`.
+Bounded to `[-1, 1]`: `1` means pointing the same direction (as similar as possible for
+this metric), `0` means orthogonal (unrelated), `-1` means opposite.
+
+Worked example with small, hand-checkable 3-dimensional vectors:
+
+```
+a = [1, 0, 1]
+b = [1, 1, 0]
+
+a · b = 1·1 + 0·1 + 1·0 = 1
+‖a‖ = √(1² + 0² + 1²) = √2 ≈ 1.4142
+‖b‖ = √(1² + 1² + 0²) = √2 ≈ 1.4142
+
+similarity(a, b) = 1 / (1.4142 · 1.4142) = 1 / 2 = 0.5
+```
+
+pgvector's `<=>` operator returns **cosine distance**, not similarity:
+`distance = 1 - similarity`. So `a <=> b = 0.5` for the pair above; two identical
+vectors give distance `0`; two orthogonal vectors give distance `1`. `dense.ts` converts
+back explicitly: `1 - (vector <=> $query) AS score`, so the rest of the pipeline always
+deals in similarity (higher = better), matching how BM25 scores and RRF scores both
+work.
+
+One practical note: the embedding model this project uses (§3) produces
+**L2-normalized** vectors (unit length, `‖v‖ = 1`) by construction. For unit vectors,
+cosine similarity reduces to a plain dot product (`‖a‖·‖b‖ = 1`), which is why the
+model's `normalize: true` option matters beyond just "cleaner numbers" - it's what
+makes the geometric comparison well-defined and consistent across every embedding ever
+stored.
+
+## 3. The embedding model
+
+`all-MiniLM-L6-v2`, run locally via `@huggingface/transformers` (transformers.js) - in
+process, no external API, no per-call cost. 384 dimensions, mean-pooled, L2-normalized.
+Chosen as a reasonable v1 default: small (~90MB), fast on CPU, well-established. Not
+corpus-tuned - like the BM25 constants, this is a starting point
+[the eval harness](evaluation-methodology.md) exists to eventually justify moving off.
+
+Weights download from the Hugging Face hub on first use and are cached afterward
+(`EMBEDDING_CACHE_DIR`) - the only point in the system's normal operation that needs
+network access beyond Stellar RPC calls, and only once per deployment.
+
+## 4. The embedding worker: why a queue, not an inline call
+
+Cataloging a resource (`Catalog.add()`) only **enqueues** a job - it never calls the
+model directly. Embedding is comparatively slow (model inference) and cataloging has to
+stay fast, since it happens synchronously inside a settlement's request path. A
+separate process (`pnpm embed-worker`, `embedding-worker-cli.ts`) drains the queue on
+its own schedule.
+
+```mermaid
+stateDiagram-v2
+    [*] --> pending: Catalog.add() enqueues
+    pending --> processing: claimBatch()<br/>FOR UPDATE SKIP LOCKED
+    processing --> done: embed succeeds
+    processing --> pending: embed fails,<br/>attempts &lt; 5<br/>(exponential backoff)
+    processing --> dead: embed fails,<br/>attempts &ge; 5
+    processing --> processing: lease expires<br/>(worker crashed) -<br/>reclaimed by another worker
+    done --> [*]
+    dead --> [*]
+```
+
+### 4.1 `FOR UPDATE SKIP LOCKED` - no two workers claim the same job
+
+```sql
+UPDATE embedding_jobs
+SET status = 'processing', attempts = attempts + 1,
+    next_attempt_at = now() + '120000 milliseconds'::interval
+WHERE id IN (
+  SELECT id FROM embedding_jobs
+  WHERE status IN ('pending','processing') AND next_attempt_at <= now()
+  ORDER BY next_attempt_at
+  LIMIT 10
+  FOR UPDATE SKIP LOCKED
+)
+RETURNING id, resource_id, attempts;
+```
+
+`SKIP LOCKED` means: if another transaction already holds a row lock on a candidate
+row (because a concurrent worker is claiming it right now), skip it instead of
+blocking. Two worker processes running this simultaneously against overlapping
+candidate sets provably never claim the same row - Postgres's own row-locking
+guarantees it, not application-level coordination
+(`14.lexical-or-fallback...`-adjacent test in `11.dense-retrieval.spec.ts` proves this
+directly: two concurrent `claimBatch()` calls against 6 pending jobs claim 6 total
+between them, zero overlap).
+
+### 4.2 The lease: crash recovery without a heartbeat
+
+Claiming a job doesn't just flip its status to `processing` - it also pushes
+`next_attempt_at` forward by `LEASE_DURATION_MS` (2 minutes). This is a **visibility
+timeout**, the same mechanism SQS and similar queues use: the claim query's own `WHERE`
+clause matches `status IN ('pending','processing') AND next_attempt_at <= now()`, so a
+job that's still marked `processing` becomes reclaimable again the instant its lease
+expires - regardless of *why* the original worker never finished (crash, network
+partition, `kill -9`, doesn't matter). No heartbeat process, no separate "is this
+worker still alive" check; the lease expiring *is* the signal. This is why
+`next_attempt_at` does double duty as both "not due for retry yet" (when `pending`) and
+"claim lease expiry" (when `processing`), instead of two separate columns - one column,
+two meanings depending on `status`, one query pattern covers both.
+
+### 4.3 Exponential backoff and dead-lettering
+
+```
+backoffDelayMs(attempts) = min(5000 · 2^attempts, 600000)
+```
+
+| attempt (after this many failures) | delay before retry |
+|---:|---:|
+| 1 | 10s |
+| 2 | 20s |
+| 3 | 40s |
+| 4 | 80s |
+| 5 | dead-lettered, no further retry |
+
+`MAX_ATTEMPTS = 5`: a job's own `attempts` counter increments *at claim time* (before
+the embed call even runs), so the 5th claim is also its last - if that one fails too,
+`markFailed` sees `attempts >= MAX_ATTEMPTS` and sets `status = 'dead'` with the last
+error message attached, instead of scheduling another retry. A dependency that's
+genuinely down (model unreachable, corrupted weights) stops retrying after roughly 2.5
+minutes of backoff rather than looping forever; a `dead` job is a concrete, queryable
+signal for "this needs a human," not a silent gap.
+
+### 4.4 What actually gets embedded
+
+Two kinds of text per resource, same generation: the resource's own metadata
+(`serviceName` + `description` + `tags`, joined), and its [synthetic
+queries](#5-synthetic-queries) - each a separate row in `embeddings`, tagged `kind:
+'resource'` or `kind: 'synthetic_query'`. `dense.ts` searches both and reports which
+kind actually matched (`matchedKind` on the result), which is precisely how the
+paraphrase worked example below is verified, not just claimed.
+
+## 5. Synthetic queries
+
+Generated at embed time (`synthetic-queries.ts`), from the resource's own metadata,
+template-based rather than LLM-authored - there was no separately-provisioned
+query-generation model available when this was built, and templates keep this local
+and free, consistent with the embedding model choice itself. Three per resource: a
+direct "what does X do" framing, a task-oriented framing (or a fallback "where can I
+find X" when there's no description to draw from), and a tag-anchored framing when tags
+exist.
+
+The trust-boundary point worth being explicit about: a resource's *own* declared
+metadata is seller-controlled and passes through the [integrity
+gauntlet](../architecture.md#32-packages-discovery---catalog-search-federation) before
+ever being cataloged. A synthetic query is **system-generated** from that
+already-validated metadata (see [`architecture.md` §3.2](../architecture.md) and the
+[threat model](../threat-model.md) for the gauntlet itself) - the honesty question for
+a synthetic query isn't "can it be forged" (it can't, it's derived server-side), it's
+"does the template actually capture how an agent would ask for this," which is a
+quality question, not a security one, and exactly the kind of thing worth upgrading to
+real LLM-generated queries once that's available (see
+[evaluation-methodology.md](evaluation-methodology.md)'s judge-model note for the
+identical gap on the grading side).
+
+## 6. Generation versioning
+
+`generations` is a table, not a config flag, and that's a deliberate design decision.
+The failure mode it exists to prevent: swap `all-MiniLM-L6-v2` for a different model (or
+even just a different `pooling`/`normalization` setting) and, without generation
+tracking, the system would silently compare *old*-model vectors against *new*-model
+queries - both are just arrays of floats to Postgres, nothing stops a meaningless
+comparison between two incompatible embedding spaces, and the result is garbage
+rankings with no error anywhere.
+
+`getOrCreateGeneration(pool, model)` resolves a model's exact configuration
+(`modelId`, `revision`, `dimension`, `pooling`, `normalization`) to a `generations.id`,
+creating the row on first use. Every embedding is written tagged with that
+`generation_id`, and `denseSearch` always scopes its query to `WHERE generation_id =
+$currentGenerationId` - old and new generations coexist in the same table
+indefinitely, and are structurally never compared to each other, not by convention but
+because the query that would do so is never issued.
+
+### 6.1 Why the vector column has no fixed dimension
+
+`packages/discovery/migrations/0003_pgvector.sql` declares `embeddings.vector` as
+plain `vector`, not `vector(384)`. pgvector's fixed-width `vector(n)` form can only
+hold one dimension per column - but this table deliberately holds *every* generation's
+vectors side by side (that's the entire point of §6 above), and a future model swap
+could easily use a different dimension. Every real query already scopes by
+`generation_id` first, so any two vectors ever actually compared are guaranteed to
+share a dimension by construction - the dimension-less column costs nothing in
+correctness and buys a model swap that needs no schema migration.
+
+The real cost: no ANN index (`hnsw`/`ivfflat`) is possible on a dimension-less column -
+both require a fixed dimension to build. This matches
+[ADR 0002](../decisions/0002-search-stack-and-eval.md)'s own reasoning independent of
+this constraint: at catalog scale (thousands, not millions, of entries), an exact
+brute-force scan costs nothing meaningful, and an ANN index would be complexity for
+zero recall gain today.
+
+## 7. Worked example: a paraphrase with zero vocabulary overlap
+
+From `11.dense-retrieval.spec.ts`. A resource named "Atmos", described as "Zephyr data
+stream" - deliberately chosen to share **no** words with anything a real query about it
+would use. Its embeddings: one for "Atmos Zephyr data stream" (`kind: resource`), and
+one hand-authored synthetic query, "climate outlook for the week" (`kind:
+synthetic_query`), standing in for what a real query-generation pass should eventually
+produce.
+
+Querying `"climate outlook"` - zero words shared with "Atmos Zephyr data stream" -
+still returns this resource, and `matchedKind` on the result is `synthetic_query`, not
+`resource`: the match came from the *synthetic query's* embedding being close to the
+real query's embedding, exactly the mechanism this whole section exists to provide.
+The same pattern was verified live this session with the real (not test-double) model:
+"is it going to rain tomorrow" against a resource described only as "hourly
+precipitation and temperature predictions" - again zero shared vocabulary, again a
+correct match.

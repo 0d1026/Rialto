@@ -31,23 +31,37 @@ Stellar is technically listed and practically invisible. Rialto exists to fix th
 
 ## What Rialto builds
 
-1. **A facilitator** - canonical `/verify`, `/settle`, `/supported` for both Stellar
-   networks, composing the Apache-2.0 `@x402/stellar` package rather than
-   reimplementing settlement.
+Built and tested end to end - not a plan, a running system:
+
+1. **A facilitator** - canonical `/verify`, `/settle`, `/supported` on
+   `stellar:testnet`, composing the Apache-2.0 `@x402/stellar` package rather than
+   reimplementing settlement. `exact` scheme only so far; `upto` (below) is spec-only.
 2. **A discovery catalog** - services are indexed automatically the moment a payment
-   settles; no registration step. Validated against poisoning, searchable in plain
-   language, ranked by real settlement history.
+   settles; no registration step. Validated against poisoning (the [integrity
+   gauntlet](/docs/threat-model)), searchable with real hybrid ranking - keyword
+   ([BM25F](/docs/search/lexical-bm25)) fused with semantic search
+   ([embeddings](/docs/search/dense-retrieval)) - and ranked by real settlement
+   history. Backed by a public, [re-runnable eval harness](/docs/search/evaluation-methodology)
+   with [real numbers](/docs/benchmarks), not an unverified claim.
 3. **Federation** - independent facilitators can register, external catalogs are
    ingested and cross-published: a service settles anywhere but is findable everywhere.
-4. **The `upto` payment scheme for Stellar** - authorize a spending ceiling, settle
-   actual usage, with the cap enforced on-chain. See the
-   [spec](/docs/scheme-upto-stellar).
-5. **An MCP server** - so agents run discover → pay → verify from inside their own
-   runtime, and hold a receipt they can check against the public ledger.
+
+Still design-stage or spec-only, stated plainly:
+
+4. **The `upto` payment scheme for Stellar** - the full [spec](/docs/scheme-upto-stellar)
+   is written; the Soroban contract and facilitator integration aren't built yet.
+5. **An MCP server** - so agents will eventually run discover → pay → verify from
+   inside their own runtime. Today, the discovery HTTP API is callable directly (see
+   the [buyer/agent guide](/docs/guides/buyers)) while the MCP wrapper is built.
 
 ## Where to go next
 
 - [Architecture](/docs/architecture) - components, flows, trust boundaries, diagram
+- [How search works](/docs/search/lexical-bm25) - the actual ranking math, derived
+- [Threat model](/docs/threat-model) - trust boundaries, and one real bug found and
+  fixed during its own research
 - [upto scheme spec](/docs/scheme-upto-stellar) - the full Stellar scheme specification
 - [Design decisions](/docs/decisions/upto-onchain-cap) - why the cap lives on-chain, and
   [how search quality is proven](/docs/decisions/search-stack-and-eval)
+- Guides for [sellers](/docs/guides/sellers), [buyers/agents](/docs/guides/buyers), and
+  [operators](/docs/guides/operators)
