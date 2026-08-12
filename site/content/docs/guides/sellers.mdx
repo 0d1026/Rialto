@@ -7,8 +7,52 @@ description: Charge per request for your API or MCP tool - no blockchain plumbin
 You have an API or an MCP tool and want to charge per request. Point it at Rialto:
 declare a price, and the facilitator verifies and settles each payment on Stellar -
 your buyers need no account, no API key, and no XLM. Every settled payment
-automatically lists your service in the discovery catalog, where agents can find it.
+automatically lists your service in the discovery catalog, where agents can find it -
+this part is live and tested today, not aspirational.
 
-> Design stage - the seller SDK and step-by-step quickstart land here with the first
-> milestone. The [architecture](/docs/architecture) describes exactly what this path
-> will look like.
+## What's real today
+
+The facilitator (`/verify`, `/settle`, `/supported`) and the discovery catalog both
+work end to end: a payment carrying the Bazaar discovery extension in its payload gets
+validated and cataloged automatically the moment it settles, with no separate
+registration call. See the [architecture doc](/docs/architecture) for the full flow
+and the [threat model](/docs/threat-model) for exactly how a hostile client's forged
+metadata is caught before it ever reaches the catalog.
+
+**Not yet built**: a `seller-sdk` helper package for declaring discovery metadata with
+minimal boilerplate. Today, declaring correct metadata means constructing the Bazaar
+extension shape by hand, per the upstream spec - real, working, just not wrapped in a
+convenience library yet.
+
+## What your metadata looks like
+
+The catalog indexes exactly this shape (`BazaarMetadata`, `packages/shared/src/types/bazaar-metadata.ts`):
+
+```ts
+{
+  type: 'http' | 'mcp',
+  x402Version: number,
+  description?: string,
+  mimeType?: string,
+  serviceName?: string,
+  tags?: string[],
+  iconUrl?: string,
+  routeTemplate?: string,
+  toolName?: string,       // MCP tools only
+  extensions?: Record<string, unknown>,
+}
+```
+
+Every field goes through the integrity gauntlet before it's stored - an oversized
+`serviceName`, an invalid tag, or a loopback `iconUrl` drops just that field, not the
+whole listing; a `routeTemplate` is percent-decoded before any traversal check runs,
+specifically so a URL-encoded `../` can't slip past a naive string check. The full
+mechanism, with the actual test cases, is in [lexical search's candidate
+selection](/docs/search/lexical-bm25) and the [threat model](/docs/threat-model)'s §3.
+
+## Where to go next
+
+- [Architecture](/docs/architecture) - the full discover → pay → catalog flow
+- [Threat model](/docs/threat-model) - exactly what's validated and how
+- [Operator guide](/docs/guides/operators) - if you're running your own facilitator
+  instead of using a hosted one

@@ -1,22 +1,14 @@
----
-icon: Server
-title: For Operators
-description: Run your own facilitator - hosted, self-hosted, or self-facilitation.
----
+# Operator guide
 
-Rialto is open source (Apache-2.0) and built to be run by others: a hosted public
-endpoint, a self-hosted deployment, or self-facilitation for sellers who want no
-third party at all. Federation means your instance's catalog can register with and
-cross-publish to the wider discovery ecosystem instead of becoming an island.
-
-Everything below is written against the actual code (`config/env.ts` for the
-facilitator, `index.ts`/`app.ts`/`embedding-worker-cli.ts` for discovery), not a plan
-for it - what's genuinely configurable today is marked as such, and so is what isn't
-yet.
+Everything needed to run the stack: what each process is, every environment variable
+it reads, how migrations apply, and what's genuinely configurable today vs. what's
+aspirational. Written against the actual code (`config/env.ts` for the facilitator,
+`index.ts`/`app.ts`/`embedding-worker-cli.ts` for discovery), not the plan for it.
 
 ## 1. The four processes
 
-<Mermaid chart={`flowchart LR
+```mermaid
+flowchart LR
     subgraph PG["Postgres (pgvector/pgvector:pg17 - not plain postgres)"]
         DB[("catalog + embeddings<br/>+ settlement stats")]
     end
@@ -26,10 +18,10 @@ yet.
     W["embed-worker<br/>(no port,<br/>polls the queue)"] <--> DB
     CLIENT["agent / buyer"] -->|GET /discovery/search| D
     CLIENT -->|verify / settle| F
-`} />
+```
 
-Four independent processes, three of them ship in this repo's `Dockerfile`
-(multi-stage, one target per process) and are wired together in `docker-compose.yml`:
+Four independent processes, three of them ship in this repo's `Dockerfile` (multi-stage,
+one target per process) and are wired together in `docker-compose.yml`:
 
 - **`facilitator`** - `/verify`, `/settle`, `/supported`. Talks to Stellar and to
   discovery's ingest endpoint. Never talks to Postgres directly.
@@ -43,7 +35,6 @@ Four independent processes, three of them ship in this repo's `Dockerfile`
   fails at the `CREATE EXTENSION vector` step on first connect.
 
 `docker-compose.yml` at the repo root runs all four with one command:
-
 ```bash
 FACILITATOR_STELLAR_PRIVATE_KEY=S... docker compose up
 ```
@@ -65,13 +56,12 @@ FACILITATOR_STELLAR_PRIVATE_KEY=S... docker compose up
 | `CORS_ORIGINS` | | `*` | |
 | `TRUST_PROXY` | | `loopback,linklocal,uniquelocal` | Express `trust proxy` setting, comma-separated. |
 
-**Rate limiting, stated accurately**: a flat `express-rate-limit` of 120
-requests/minute per process, applied uniformly to `/verify`, `/settle`, and
-`/supported`. This is **not** currently configurable via environment variable, and it
-is **not** per-principal or tied to settlement success rate - both were described in
-an earlier draft of this package's README as if built; they aren't (see the
-[threat model](/docs/threat-model)'s §4.4 for why this matters). If your deployment
-needs either, that's real work, not a flag to flip.
+**Rate limiting, stated accurately**: a flat `express-rate-limit` of 120 requests/minute
+per process, applied uniformly to `/verify`, `/settle`, and `/supported`. This is
+**not** currently configurable via environment variable, and it is **not**
+per-principal or tied to settlement success rate - both were described in an earlier
+draft of this package's README as if built; they aren't. If your deployment needs
+either, that's real work, not a flag to flip.
 
 ### 2.2 Discovery API server (`packages/discovery/src/index.ts`, `app.ts`)
 
@@ -121,10 +111,9 @@ reuse the `catalog-data` and `embedding-model-cache` named volumes - no re-downl
 no re-migration.
 
 **Self-facilitation** (a resource server running the facilitator logic in-process,
-rather than calling a separately-hosted one) is described as a goal in the
-[architecture doc](/docs/architecture) but has no working example in this repo yet -
-`examples/` is still a placeholder. Don't assume this path is exercised or tested; it
-isn't.
+rather than calling a separately-hosted one) is described as a goal in
+`docs/architecture.md` but has no working example in this repo yet - `examples/` is
+still a placeholder. Don't assume this path is exercised or tested; it isn't.
 
 ## 5. Monitoring and health
 
@@ -135,10 +124,3 @@ Stellar RPC is down still reports healthy), and no metrics endpoint. A real
 production deployment needs more than what ships today; treat `/health` as "the
 process is up and its own DB connection didn't throw at startup," not as a full health
 check.
-
-## 6. Security posture
-
-Before running a public-facing deployment, read the [threat model](/docs/threat-model)
-in full - it covers the catalog's trust boundary, the rate-limiting gap above, sponsor
-economics abuse, and what's been independently verified vs. delegated to upstream
-packages.

@@ -1,0 +1,231 @@
+---
+icon: Hash
+title: "Lexical search: BM25F, derived"
+description: "The keyword-matching arm - term frequency saturation, length normalization, IDF, and field weighting, worked through with real numbers."
+---
+
+Source: `packages/discovery/src/search/bm25.ts` (pure scoring, no DB) and
+`packages/discovery/src/search/lexical.ts` (Postgres orchestration). Tests:
+`packages/discovery/test/unit/10.bm25-ranking.spec.ts`,
+`14.lexical-or-fallback.spec.ts`. Every number in this document is either lifted
+directly from those tests or computed the same way the code computes it - nothing
+here is an illustrative approximation.
+
+## 1. What this layer does, and doesn't do
+
+Lexical search matches on **words**. It has no concept of meaning - "weather" and
+"forecast" are unrelated tokens to it, and it would happily rank a page that repeats
+"weather" fifty times above one that genuinely explains a forecast, if nothing kept it
+from doing so. Semantic understanding is [dense retrieval's](/docs/search/dense-retrieval)
+job, not this layer's. What lexical search has to get right, on its own terms, is:
+given that a document contains the query's words, which document is *more* relevant,
+and why.
+
+Two things Postgres does for this layer, and one thing it deliberately does not:
+
+- **Tokenization and stemming**: `to_tsvector('english', ...)` - turns "forecasting"
+  and "forecast" into the same lexeme, drops stopwords ("the", "or", "a"). Genuinely
+  hard to get right (language-specific, exception-laden) and not reimplemented here.
+- **Candidate selection**: which rows are even in the running for a query (§4 below).
+- **What Postgres does *not* do**: score the candidates. `ts_rank`/`ts_rank_cd` exist,
+  but they lack real inverse-document-frequency weighting and don't let you tune field
+  importance or length normalization independently - which is why this layer computes
+  BM25F itself, in application code, over the tokenized text Postgres already produced.
+
+## 2. BM25, built up piece by piece
+
+BM25 answers one question per query term: *given that a document contains this term,
+how much should that raise its score?* Three ideas combine to answer it.
+
+### 2.1 Term frequency, saturating
+
+A document mentioning "weather" five times is probably more about weather than one
+mentioning it once - but not five times more relevant. Repeated mentions should matter
+less and less. The BM25 saturation function is:
+
+```
+saturated(tf) = tf · (k1 + 1) / (tf + k1)
+```
+
+With `k1 = 1.2` (`BM25_K1` in `bm25.ts` - the literature default, not corpus-tuned
+yet), here's what that curve actually does as raw term frequency climbs:
+
+| tf | saturated(tf) | gain over previous |
+|---:|---:|---:|
+| 1 | 1.000 | - |
+| 2 | 1.375 | +0.375 |
+| 3 | 1.571 | +0.196 |
+| 5 | 1.774 | +0.104 (avg per step) |
+| 10 | 1.964 | +0.038 (avg per step) |
+| 20 | 2.075 | +0.011 (avg per step) |
+| ∞ | 2.200 | → 0 |
+
+The function asymptotically approaches `k1 + 1 = 2.2` and never crosses it, no matter
+how many times the term appears. Going from 1 to 2 occurrences nearly doubles the
+signal (+0.375); going from 10 to 20 barely moves it (+0.11 total, spread over ten more
+occurrences). This is the whole point of `k1`: a **higher** `k1` stretches the curve out
+- repeated terms keep contributing meaningfully for longer before flattening. A `k1` of
+0 would mean *any* occurrence, once or a hundred times, scores identically.
+
+### 2.2 Length normalization
+
+A one-line description matching a term once is a stronger signal than a ten-paragraph
+description matching it once - the term is a bigger fraction of what that document is
+*about*. Before saturation, term frequency is normalized against the field's own length
+relative to the corpus average:
+
+```
+normalizedTf = tf / (1 - b + b · (len / avgLen))
+```
+
+`b` ranges 0 to 1. `b = 0` means length is ignored entirely (`normalizedTf = tf`,
+always). `b = 1` fully normalizes: a field twice the average length has its term
+frequency effectively halved before saturation. This implementation uses `b = 0.75`
+(`BM25_B`), the standard default - meaningful normalization without being extreme.
+
+Concretely, for a field at exactly the corpus-average length (`len = avgLen`), the
+denominator is `1 - 0.75 + 0.75·1 = 1`, so `normalizedTf = tf` unchanged. A field at
+**twice** the average length: denominator `= 1 - 0.75 + 0.75·2 = 1.75`, so a raw `tf=1`
+normalizes down to `≈0.571` before saturation ever runs - the same one mention counts
+for less because it's a smaller fraction of a longer field.
+
+### 2.3 IDF - why a rare term should outweigh two common ones
+
+Term frequency and length normalization operate *within* one document. IDF
+(inverse document frequency) is the only piece that looks at the whole corpus: a term
+that appears in 2 of 100 catalog entries is far more distinguishing than one appearing
+in 80 of 100. The formula (`idf()` in `bm25.ts`, the standard Robertson/Sparck-Jones
+form):
+
+```
+idf(df, N) = ln( (N - df + 0.5) / (df + 0.5) + 1 )
+```
+
+floored at a small positive epsilon so a term appearing in nearly every document
+contributes a near-zero weight rather than going negative and *penalizing* a match
+that happens to include it. The `+0.5` terms are Laplace-style smoothing - without
+them, a term appearing in every single document (`df = N`) would make the numerator
+zero and the log undefined territory; with them, the formula stays well-behaved at
+every `df` from 1 to N.
+
+The curve, for a 100-document corpus:
+
+| df (docs containing the term) | idf |
+|---:|---:|
+| 1 | 4.209 |
+| 10 | 2.264 |
+| 50 | 0.693 |
+| 90 | 0.110 |
+| 99 | 0.015 |
+
+A term ten times rarer than another (`df=1` vs `df=10`) very nearly doubles its IDF
+weight, not just increases it by 10%. This is the mechanism the naive "count how many
+query words matched" approach - and Postgres's own `ts_rank` - don't have, and it's
+what the worked example below actually demonstrates.
+
+### 2.4 Field weighting (the "F" in BM25F)
+
+A term match in a resource's `serviceName`/tags should count for more than the same
+term appearing only in its description, which should count for more than a match only
+in the raw resource URL. Each weighted field gets its own `normalizedTf`, then they
+combine **before** saturation runs once over the total:
+
+```
+combinedTf = Σ_field  weight_field · normalizedTf_field
+saturated  = combinedTf · (k1 + 1) / (combinedTf + k1)
+score     += idf(df, N) · saturated · queryTermFreq
+```
+
+`FIELD_WEIGHTS = { a: 3, b: 1, c: 0.5 }` in `bm25.ts`, mapped onto the schema's
+`search_a` (serviceName + tags), `search_b` (description), `search_c` (the resource
+URL itself) columns. A term appearing only in `search_a` is worth 3x the same term only
+in `search_c`. These weights, like `k1` and `b`, are literature-reasonable defaults
+chosen to make ordering obviously correct without overfitting to a query set that
+didn't exist yet when they were set -
+[the eval harness](/docs/search/evaluation-methodology) is what would justify retuning
+any of the three constants in this section.
+
+## 3. Worked example: why a rare term beats two common ones
+
+Directly from `10.bm25-ranking.spec.ts`. Corpus: 100 documents. Query: three terms,
+`rare` (appears in 2 of 100 docs), `common1` and `common2` (each in 80 of 100).
+
+- **Document A** matches only `rare`, once, in field `a` (length 1, corpus average 1.5).
+- **Document B** matches both `common1` and `common2`, once each, in field `a`
+  (length 2, same corpus average).
+
+A naive "count the matching words" ranker would put B first - two matches beat one.
+Here's what BM25F actually computes:
+
+**Document A, term `rare`:**
+```
+normalizedTf = 1 / (1 - 0.75 + 0.75·(1/1.5)) = 1 / 0.75 = 1.333
+combinedTf   = 3 · 1.333 = 4.000
+saturated    = 4.000 · 2.2 / (4.000 + 1.2) = 8.8 / 5.2 = 1.692
+idf(2, 100)  = 3.698
+score_A      = 3.698 · 1.692 · 1 = 6.259
+```
+
+**Document B, terms `common1` and `common2`** (identical shape, each contributes
+independently):
+```
+normalizedTf = 1 / (1 - 0.75 + 0.75·(2/1.5)) = 1 / 1.25 = 0.800
+combinedTf   = 3 · 0.800 = 2.400
+saturated    = 2.400 · 2.2 / (2.400 + 1.2) = 5.28 / 3.6 = 1.467
+idf(80, 100) = 0.227
+contribution per term = 0.227 · 1.467 · 1 = 0.333
+score_B      = 0.333 + 0.333 = 0.666
+```
+
+**`score_A = 6.259` vs. `score_B = 0.666` - document A wins by nearly 10x**, despite
+matching only one word against B's two, because that one word is nearly twenty times
+rarer. This is asserted directly in `10.bm25-ranking.spec.ts` (`scoreA > scoreB`), both
+as a pure-math test against these exact numbers and again end-to-end through a real
+Postgres-backed catalog.
+
+## 4. Candidate selection, and the AND→OR fallback
+
+<Mermaid chart={`flowchart TD
+    Q["query text"] --> STRICT["strict attempt:<br/>websearch_to_tsquery (AND semantics)<br/>OR ILIKE '%whole query%'"]
+    STRICT -->|rows found| BM25["BM25F scores every candidate<br/>(section 2-3 above)"]
+    STRICT -->|zero rows| RELAX{"more than<br/>one word?"}
+    RELAX -->|yes| FALLBACK["relaxed attempt:<br/>words joined with OR"]
+    RELAX -->|no| EMPTY["return empty -<br/>nothing to relax against"]
+    FALLBACK -->|rows found| BM25
+    FALLBACK -->|zero rows| EMPTY
+    BM25 --> SORT["sort by score desc,<br/>tie-break by last_updated"]
+`} />
+
+Before BM25 can score anything, a row has to become a *candidate* - and this step has
+its own real behavior worth understanding on its own, separate from scoring.
+
+`websearch_to_tsquery('english', 'weather service')` compiles to `weather & service` -
+**AND** semantics for bare multi-word input. A resource containing only "weather" (not
+"service" anywhere) produces **zero** matching rows, full stop - not a low score, not
+excluded-then-reconsidered, genuinely never entering the pipeline BM25 runs over. The
+ILIKE fallback (`resource ILIKE '%weather service%'`) doesn't rescue this either: it
+tests the *whole query string* as one literal substring, so it won't match a resource
+whose text is "Weather API" - "weather service" isn't a substring of that.
+
+This was a real, reported failure: querying `"weather service"` against a seeded
+resource named "Weather API" returned nothing, and the row was excluded before BM25
+ever ran - not a ranking defect. The fix, in `rankLexicalCandidates` (`lexical.ts`): if
+the strict interpretation finds literally zero candidates, retry once with the query's
+words joined by `OR` (`"weather OR service"`). `websearch_to_tsquery` treats explicit
+`OR` as a real union operator, and the literal word "OR" itself gets dropped by the
+`'english'` dictionary as a stopword, so it never becomes a spurious search term. The
+retry **only** fires on a genuine zero-result case - a query that already found
+something via the strict interpretation is never re-run, never re-ranked, and never
+loosened. `14.lexical-or-fallback.spec.ts` covers this: the reported case now succeeds,
+a query where *nothing* matches (even relaxed) still correctly returns empty rather
+than every resource, and a query with real strict-AND matches is provably unaffected by
+the fallback existing at all.
+
+## 5. What this page does not cover
+
+Query-derived structured constraints (network/asset/price), combining this arm with
+[dense retrieval](/docs/search/dense-retrieval), and settlement-history ranking are
+covered in [fusion and ranking](/docs/search/fusion-and-ranking) - none of that logic
+lives in `bm25.ts` or `lexical.ts`, deliberately: this layer's only job is "given these
+words, in this corpus, which candidate is more relevant," nothing about *which*
+candidates are even eligible beyond text matching.

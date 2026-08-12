@@ -1,0 +1,6 @@
+{
+  "title": "How Search Works",
+  "icon": "Search",
+  "defaultOpen": false,
+  "pages": ["lexical-bm25", "dense-retrieval", "fusion-and-ranking", "evaluation-methodology"]
+}

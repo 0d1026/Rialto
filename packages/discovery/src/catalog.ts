@@ -261,7 +261,13 @@ export class Catalog {
       where.push(`accepts @> $${params.length}::jsonb`);
     }
     for (const ext of f.extensions ?? []) {
-      params.push(`$.** ? (@ == "${ext.replace(/"/g, '')}")`);
+      // JSON.stringify produces a correctly-escaped jsonpath string literal
+      // (jsonpath string escaping matches JSON's) - a hand-rolled "strip
+      // quotes only" version left backslashes unescaped, so a trailing `\`
+      // in the query string produced an unterminated-string jsonpath parse
+      // error (a live, reproduced 500 with a stack trace in the response -
+      // see docs/threat-model.md's finding on this).
+      params.push(`$.** ? (@ == ${JSON.stringify(ext)})`);
       where.push(`extensions IS NOT NULL AND jsonb_path_exists(extensions, $${params.length}::jsonpath)`);
     }
     return where.length > 0 ? `WHERE ${where.join(' AND ')}` : '';
