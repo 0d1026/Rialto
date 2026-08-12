@@ -37,6 +37,7 @@ export function extractBazaarMetadata(
     serviceName: discovered.serviceName,
     tags: discovered.tags,
     iconUrl: discovered.iconUrl,
+    routeTemplate: 'routeTemplate' in discovered ? discovered.routeTemplate : undefined,
     toolName: 'toolName' in discovered ? discovered.toolName : undefined,
     extensions: discovered.extensions as Record<string, unknown> | undefined,
   };
