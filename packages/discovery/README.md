@@ -14,3 +14,23 @@ The catalog and search layer.
 - **Federation**: a registration endpoint for independent facilitators, ingestion of
   external catalogs, and cross-publishing - a service settles anywhere but is findable
   everywhere. This is our answer to the open interop question in stellar/x402-stellar#50.
+
+## Testing
+
+```
+pnpm test        # unit + integration, against a throwaway Postgres
+pnpm test:watch  # same, watch mode
+pnpm test:live   # [LIVE] - requires LIVE_DISCOVERY_URL (and LIVE_INGEST_TOKEN if set)
+```
+
+`pnpm test` starts a disposable Postgres container via the Docker CLI automatically
+(same image as `docker-compose.yml`) and tears it down after. Set `TEST_DATABASE_URL`
+yourself to point at an existing instance instead (e.g. in CI) and Docker is skipped
+entirely.
+
+Layout: `test/unit` (pure logic + single-service HTTP behavior), `test/integration`
+(cross-cutting flows against a real Postgres), `test/live` (hits a real deployed
+instance, excluded from `pnpm test`). See `test/unit/01.gauntlet.spec.ts` onward for
+the current baseline; `test/integration/08.regression-route-template.spec.ts` is a
+known-failing regression test for the `routeTemplate`-dropped bug in
+`packages/facilitator/src/settlement-events.ts` - it stays red until that's fixed.

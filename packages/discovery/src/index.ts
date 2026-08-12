@@ -1,14 +1,11 @@
 import 'dotenv/config';
-import cors from 'cors';
-import express from 'express';
-import helmet from 'helmet';
 import { pino } from 'pino';
-import { pinoHttp } from 'pino-http';
 import { Catalog } from './catalog.js';
-import { createRouter } from './router.js';
+import { createApp } from './app.js';
 
 export { Catalog } from './catalog.js';
 export * from './validation.js';
+export { createApp } from './app.js';
 
 const logger = pino({ level: process.env.LOG_LEVEL ?? 'info' });
 
@@ -20,12 +17,7 @@ async function main(): Promise<void> {
   const catalog = await Catalog.connect(databaseUrl);
   logger.info({ resources: await catalog.count() }, 'catalog connected');
 
-  const app = express();
-  app.use(helmet());
-  app.use(cors({ origin: process.env.CORS_ORIGINS ?? '*' }));
-  app.use(pinoHttp({ logger }));
-  app.use(express.json({ limit: '256kb' }));
-  app.use(createRouter(catalog, { ingestToken: process.env.INGEST_TOKEN }));
+  const app = createApp(catalog, { ingestToken: process.env.INGEST_TOKEN });
 
   const server = app.listen(port, () => {
     logger.info({ port }, 'Rialto discovery listening');
