@@ -18,7 +18,7 @@ export default function Footer() {
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <img src="/logo-mark-transparent.png" alt="Rialto" style={{ height: 22, width: 'auto', display: 'block', opacity: 0.85 }} />
-        <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 14 }}>
+        <span style={{ fontFamily: 'var(--rialto-font-heading)', fontWeight: 700, fontSize: 14 }}>
           Rialto
         </span>
         <span style={{ fontSize: 13, color: 'var(--rialto-text-muted-2)' }}>

@@ -72,9 +72,14 @@
   /* Grid gaps */
   --rialto-grid-gap-card: 20px;
 
+  /* Display font pairing (landing-scoped, does not affect /docs):
+     geometric bold sans for headings, tracked small-caps sans for nav/labels. */
+  --rialto-font-heading: var(--font-poppins), sans-serif;
+  --rialto-font-label: var(--font-nunito-sans), sans-serif;
+
   background: var(--rialto-bg-page);
   color: var(--rialto-text-primary);
-  font-family: 'Manrope', sans-serif;
+  font-family: var(--font-inter), sans-serif;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
@@ -143,16 +148,17 @@
 }
 
 .rialto-landing .rialto-eyebrow {
+  font-family: var(--rialto-font-label);
   font-size: 13px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--rialto-text-muted-2);
-  font-weight: 600;
+  font-weight: 700;
   margin: 0 0 14px;
 }
 
 .rialto-landing .rialto-section-heading {
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: var(--rialto-font-heading);
   font-size: clamp(28px, 3.4vw, 38px);
   color: var(--rialto-text-heading);
   margin: 0;
@@ -160,6 +166,19 @@
 }
 
 /* Cards */
+
+.rialto-landing .rialto-card,
+.rialto-landing .rialto-card--bordered,
+.rialto-landing .rialto-card--accent-left {
+  transition: transform 220ms cubic-bezier(0.34, 1.4, 0.64, 1), box-shadow 220ms ease, border-color 220ms ease;
+}
+
+.rialto-landing .rialto-card:hover,
+.rialto-landing .rialto-card--bordered:hover,
+.rialto-landing .rialto-card--accent-left:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 40px -20px var(--rialto-accent-soft);
+}
 
 .rialto-landing .rialto-card {
   background: var(--rialto-bg-panel);
@@ -185,6 +204,51 @@
   border-left: 3px solid var(--rialto-accent-alt);
 }
 
+/* Pill-shaped eyebrow badge (optional modifier on .rialto-eyebrow) */
+.rialto-landing .rialto-eyebrow--pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: var(--rialto-radius-pill);
+  background: var(--rialto-border-faint);
+  border: 1px solid var(--rialto-border-soft);
+  margin: 0 0 14px;
+}
+
+/* Nav links: "text roll" hover — two stacked labels, the container clips to
+   one line and slides up by one line-height on hover (pattern lifted from
+   the reference site's duplicated nav-label markup). */
+.rialto-landing .rialto-nav-link {
+  display: inline-block;
+  overflow: hidden;
+  height: 1.3em;
+  font-family: var(--rialto-font-label);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.rialto-landing .rialto-nav-link-track {
+  display: flex;
+  flex-direction: column;
+  transition: transform 320ms cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.rialto-landing .rialto-nav-link:hover .rialto-nav-link-track {
+  transform: translateY(-1.3em);
+}
+
+.rialto-landing .rialto-nav-link-line {
+  line-height: 1.3em;
+  height: 1.3em;
+}
+
+.rialto-landing .rialto-nav-link-line--hover {
+  color: var(--rialto-text-primary);
+}
+
 /* Buttons */
 
 .rialto-landing .rialto-btn {
@@ -195,6 +259,7 @@
   font-weight: 600;
   padding: 13px 24px;
   border-radius: var(--rialto-radius-button);
+  transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
 }
 
 .rialto-landing .rialto-btn--primary {
@@ -202,9 +267,21 @@
   background: var(--rialto-accent);
 }
 
+.rialto-landing .rialto-btn--primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px -8px var(--rialto-accent-soft);
+  filter: brightness(1.08);
+}
+
 .rialto-landing .rialto-btn--outline {
   color: var(--rialto-text-primary);
   border: 1px solid var(--rialto-border-hairline);
+}
+
+.rialto-landing .rialto-btn--outline:hover {
+  transform: translateY(-1px);
+  border-color: var(--rialto-border-hairline);
+  background: var(--rialto-border-faint);
 }
 
 .rialto-landing .rialto-btn--small {

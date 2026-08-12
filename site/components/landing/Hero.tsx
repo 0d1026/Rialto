@@ -1,5 +1,6 @@
 import HeroBackground from './HeroBackground';
 import { REPO_URL } from './content';
+import { RevealMask } from './Reveal';
 
 export default function Hero() {
   return (
@@ -18,7 +19,7 @@ export default function Hero() {
         <div className="rialto-hero-col-left" style={{ flex: '1 1 480px', maxWidth: 640 }}>
           <p
             style={{
-              fontFamily: "'Space Grotesk', sans-serif",
+              fontFamily: 'var(--rialto-font-heading)',
               fontSize: 'clamp(16px,2vw,19px)',
               color: 'var(--rialto-accent)',
               margin: '0 0 16px',
@@ -28,18 +29,20 @@ export default function Hero() {
             &ldquo;Being paid is what gets a service listed.&rdquo;
           </p>
 
-          <h1
-            style={{
-              fontFamily: "'Space Grotesk', sans-serif",
-              fontSize: 'clamp(36px,4.6vw,58px)',
-              lineHeight: 1.08,
-              fontWeight: 700,
-              margin: '0 0 20px',
-              color: '#FFFFFF',
-            }}
-          >
-            An x402 facilitator and Bazaar discovery layer for Stellar
-          </h1>
+          <RevealMask delay={0.1} style={{ margin: '0 0 20px' }}>
+            <h1
+              style={{
+                fontFamily: 'var(--rialto-font-heading)',
+                fontSize: 'clamp(36px,4.6vw,58px)',
+                lineHeight: 1.08,
+                fontWeight: 700,
+                margin: 0,
+                color: '#FFFFFF',
+              }}
+            >
+              An x402 facilitator and Bazaar discovery layer for Stellar
+            </h1>
+          </RevealMask>
 
           <p
             style={{
@@ -72,7 +75,8 @@ export default function Hero() {
               border: '1px solid var(--rialto-border-medium)',
               borderRadius: 'var(--rialto-radius-terminal)',
               overflow: 'hidden',
-              boxShadow: '0 40px 90px -30px rgba(0,0,0,0.7)',
+              boxShadow:
+                '0 40px 90px -30px rgba(0,0,0,0.7), 0 12px 40px -18px var(--rialto-accent-soft), inset 0 -1px 0 0 var(--rialto-accent-soft)',
             }}
           >
             <div

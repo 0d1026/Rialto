@@ -20,7 +20,7 @@ export default function Nav() {
           alt="Rialto"
           style={{ height: 28, width: 'auto', display: 'block' }}
         />
-        <span style={{ fontFamily: 'var(--font-heading)', fontWeight: 700, fontSize: 18 }}>
+        <span style={{ fontFamily: 'var(--rialto-font-heading)', fontWeight: 700, fontSize: 18 }}>
           Rialto
         </span>
       </div>
@@ -30,17 +30,25 @@ export default function Nav() {
             <Link
               key={link.label}
               href={link.href}
-              style={{ fontSize: 14, color: 'var(--rialto-text-body-2)', fontWeight: 500 }}
+              className="rialto-nav-link"
+              style={{ color: 'var(--rialto-text-body-2)' }}
             >
-              {link.label}
+              <span className="rialto-nav-link-track">
+                <span className="rialto-nav-link-line">{link.label}</span>
+                <span className="rialto-nav-link-line rialto-nav-link-line--hover">{link.label}</span>
+              </span>
             </Link>
           ) : (
             <a
               key={link.label}
               href={link.href}
-              style={{ fontSize: 14, color: 'var(--rialto-text-body-2)', fontWeight: 500 }}
+              className="rialto-nav-link"
+              style={{ color: 'var(--rialto-text-body-2)' }}
             >
-              {link.label}
+              <span className="rialto-nav-link-track">
+                <span className="rialto-nav-link-line">{link.label}</span>
+                <span className="rialto-nav-link-line rialto-nav-link-line--hover">{link.label}</span>
+              </span>
             </a>
           ),
         )}

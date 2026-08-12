@@ -7,6 +7,42 @@ import { heroStars } from './content';
 export default function HeroBackground() {
   return (
     <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
+      {/* Ambient glow blobs, behind everything else */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '-10%',
+          right: '-8%',
+          width: 560,
+          height: 560,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, var(--rialto-accent-soft) 0%, transparent 70%)',
+          filter: 'blur(20px)',
+        }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          bottom: '-15%',
+          left: '-6%',
+          width: 480,
+          height: 480,
+          borderRadius: '50%',
+          background: 'radial-gradient(circle, var(--rialto-accent-alt-soft) 0%, transparent 70%)',
+          filter: 'blur(20px)',
+        }}
+      />
+      {/* Subtle grain, above the glow, below the dot-grid/stars */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          opacity: 0.045,
+          mixBlendMode: 'overlay',
+          backgroundImage:
+            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")",
+        }}
+      />
       <div
         style={{
           position: 'absolute',

@@ -1,15 +1,21 @@
 import { facilitatorBullets, discoveryPipeline } from './content';
+import { Reveal, Stagger, StaggerItem, RevealMask } from './Reveal';
 
 export default function Pillars() {
   return (
     <section id="pillars" className="rialto-section">
-      <div className="rialto-section-eyebrow-block">
-        <p className="rialto-eyebrow">What ships</p>
-        <h2 className="rialto-section-heading">Three packages, not marketing categories</h2>
-      </div>
+      <Reveal>
+        <div className="rialto-section-eyebrow-block">
+          <p className="rialto-eyebrow rialto-eyebrow--pill">What ships</p>
+          <RevealMask>
+            <h2 className="rialto-section-heading">Three packages, not marketing categories</h2>
+          </RevealMask>
+        </div>
+      </Reveal>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 'var(--rialto-grid-gap-card)' }}>
+      <Stagger style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 'var(--rialto-grid-gap-card)' }}>
         {/* Facilitator */}
+        <StaggerItem>
         <div className="rialto-card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div
             style={{
@@ -31,7 +37,7 @@ export default function Pillars() {
               }}
             />
           </div>
-          <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 21, color: '#FFFFFF', margin: 0, fontWeight: 600 }}>
+          <h3 style={{ fontFamily: 'var(--rialto-font-heading)', fontSize: 21, color: '#FFFFFF', margin: 0, fontWeight: 600 }}>
             Facilitator
           </h3>
           <p style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--rialto-text-body-3)', margin: 0 }}>
@@ -59,8 +65,10 @@ export default function Pillars() {
             ))}
           </ul>
         </div>
+        </StaggerItem>
 
         {/* Discovery */}
+        <StaggerItem>
         <div
           className="rialto-card"
           style={{
@@ -98,7 +106,7 @@ export default function Pillars() {
           >
             <span style={{ width: 14, height: 14, borderRadius: '50%', border: '2.5px solid var(--rialto-accent-alt)', display: 'block' }} />
           </div>
-          <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 21, color: '#FFFFFF', margin: 0, fontWeight: 600 }}>
+          <h3 style={{ fontFamily: 'var(--rialto-font-heading)', fontSize: 21, color: '#FFFFFF', margin: 0, fontWeight: 600 }}>
             Discovery
           </h3>
           <p style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--rialto-text-body-3)', margin: 0 }}>
@@ -128,8 +136,10 @@ export default function Pillars() {
             )}
           </div>
         </div>
+        </StaggerItem>
 
         {/* Federation */}
+        <StaggerItem>
         <div className="rialto-card" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div
             style={{
@@ -152,17 +162,18 @@ export default function Pillars() {
               }}
             />
           </div>
-          <h3 style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 21, color: '#FFFFFF', margin: 0, fontWeight: 600 }}>
+          <h3 style={{ fontFamily: 'var(--rialto-font-heading)', fontSize: 21, color: '#FFFFFF', margin: 0, fontWeight: 600 }}>
             Federation
           </h3>
           <p style={{ fontSize: 15, lineHeight: 1.6, color: 'var(--rialto-text-body-3)', margin: 0 }}>
             Independent facilitators register. External catalogs are ingested and cross-published.
           </p>
-          <p style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 15, color: 'var(--rialto-accent)', margin: '6px 0 0', fontWeight: 600 }}>
+          <p style={{ fontFamily: 'var(--rialto-font-heading)', fontSize: 15, color: 'var(--rialto-accent)', margin: '6px 0 0', fontWeight: 600 }}>
             Settles anywhere. Findable everywhere.
           </p>
         </div>
-      </div>
+        </StaggerItem>
+      </Stagger>
     </section>
   );
 }
