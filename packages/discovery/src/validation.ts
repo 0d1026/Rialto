@@ -17,6 +17,24 @@
  */
 
 const PRINTABLE_ASCII = /^[\x20-\x7E]+$/;
+
+/**
+ * Postgres text/jsonb cannot store NUL (0x00) - real-world catalog data
+ * contains it. Strip recursively from every string, including nested values.
+ */
+export function stripNul<T>(value: T): T {
+  if (typeof value === 'string') return value.replaceAll('\u0000', '') as T;
+  if (Array.isArray(value)) return value.map(stripNul) as T;
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([k, v]) => [
+        stripNul(k),
+        stripNul(v),
+      ]),
+    ) as T;
+  }
+  return value;
+}
 const ROUTE_TEMPLATE = /^\/[a-zA-Z0-9_/:.\-~%]+$/;
 
 export function cleanServiceName(value: unknown): string | undefined {
@@ -128,7 +146,8 @@ export type CleanResult =
   | { ok: false; reason: string };
 
 /** Envelope-level validation rejects; field-level problems soft-drop. */
-export function cleanEntry(input: CleanEntryInput): CleanResult {
+export function cleanEntry(rawInput: CleanEntryInput): CleanResult {
+  const input = stripNul(rawInput);
   if (typeof input.resource !== 'string' || input.resource.length === 0) {
     return { ok: false, reason: 'resource_missing' };
   }

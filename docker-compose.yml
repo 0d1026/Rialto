@@ -1,0 +1,49 @@
+# Self-host the full Rialto stack with one command:
+#   FACILITATOR_STELLAR_PRIVATE_KEY=S... docker compose up
+# Testnet by default; see .env.example for every knob.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rialto}
+      POSTGRES_DB: rialto
+    volumes:
+      - catalog-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  discovery:
+    build:
+      context: .
+      target: discovery
+    environment:
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-rialto}@postgres:5432/rialto
+      PORT: 4030
+      INGEST_TOKEN: ${INGEST_TOKEN:-}
+    ports:
+      - "4030:4030"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  facilitator:
+    build:
+      context: .
+      target: facilitator
+    environment:
+      FACILITATOR_STELLAR_PRIVATE_KEY: ${FACILITATOR_STELLAR_PRIVATE_KEY:?set your facilitator secret}
+      STELLAR_NETWORK: ${STELLAR_NETWORK:-stellar:testnet}
+      MAX_TRANSACTION_FEE_STROOPS: ${MAX_TRANSACTION_FEE_STROOPS:-200000}
+      DISCOVERY_INGEST_URL: http://discovery:4030/internal/settlement-events
+      INGEST_TOKEN: ${INGEST_TOKEN:-}
+      PORT: 4022
+    ports:
+      - "4022:4022"
+    depends_on:
+      - discovery
+
+volumes:
+  catalog-data:

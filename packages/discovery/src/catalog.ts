@@ -34,11 +34,15 @@ CREATE TABLE IF NOT EXISTS resources (
   source TEXT,
   last_updated TIMESTAMPTZ NOT NULL DEFAULT now(),
   first_seen TIMESTAMPTZ NOT NULL DEFAULT now(),
+  -- app-computed search fields: generated columns may only use IMMUTABLE
+  -- functions (array_to_string is not), so the app flattens tags at write time
+  search_a TEXT NOT NULL DEFAULT '',
+  search_b TEXT NOT NULL DEFAULT '',
+  search_c TEXT NOT NULL DEFAULT '',
   search_tsv TSVECTOR GENERATED ALWAYS AS (
-    setweight(to_tsvector('english', coalesce(service_name,'')), 'A') ||
-    setweight(to_tsvector('english', coalesce(array_to_string(tags,' '),'')), 'A') ||
-    setweight(to_tsvector('english', coalesce(description,'')), 'B') ||
-    setweight(to_tsvector('english', coalesce(resource,'')), 'C')
+    setweight(to_tsvector('english', search_a), 'A') ||
+    setweight(to_tsvector('english', search_b), 'B') ||
+    setweight(to_tsvector('english', search_c), 'C')
   ) STORED,
   UNIQUE (resource, tool_name)
 );
@@ -86,11 +90,15 @@ export class Catalog {
     const result = cleanEntry(input);
     if (!result.ok) return result;
     const e = result.entry;
+    const searchA = [e.serviceName ?? '', ...(e.tags ?? [])].join(' ').trim();
+    const searchB = e.description ?? '';
+    const searchC = e.resource;
     await this.pool.query(
       `INSERT INTO resources
         (resource, tool_name, type, x402_version, accepts, description, mime_type,
-         service_name, tags, icon_url, route_template, extensions, provenance, source, last_updated)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14, now())
+         service_name, tags, icon_url, route_template, extensions, provenance, source,
+         search_a, search_b, search_c, last_updated)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17, now())
        ON CONFLICT (resource, tool_name) DO UPDATE SET
          type = EXCLUDED.type,
          x402_version = EXCLUDED.x402_version,
@@ -102,6 +110,9 @@ export class Catalog {
          icon_url = EXCLUDED.icon_url,
          route_template = EXCLUDED.route_template,
          extensions = EXCLUDED.extensions,
+         search_a = EXCLUDED.search_a,
+         search_b = EXCLUDED.search_b,
+         search_c = EXCLUDED.search_c,
          last_updated = now()`,
       [
         e.resource,
@@ -118,6 +129,9 @@ export class Catalog {
         e.extensions ? JSON.stringify(e.extensions) : null,
         provenance,
         source,
+        searchA,
+        searchB,
+        searchC,
       ],
     );
     return result;
