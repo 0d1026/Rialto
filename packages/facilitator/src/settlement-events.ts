@@ -49,13 +49,16 @@ export function extractBazaarMetadata(
 export function postSettlementEvent(
   ingestUrl: string,
   event: SettlementEvent,
+  ingestToken = "",
 ): void {
   if (!ingestUrl) return;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), POST_TIMEOUT_MS);
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (ingestToken) headers.authorization = `Bearer ${ingestToken}`;
   void fetch(ingestUrl, {
     method: "POST",
-    headers: { "content-type": "application/json" },
+    headers,
     body: JSON.stringify(event),
     signal: controller.signal,
   })

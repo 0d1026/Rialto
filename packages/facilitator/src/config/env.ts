@@ -34,6 +34,8 @@ export const Env = {
   maxTransactionFeeStroops: Number(process.env.MAX_TRANSACTION_FEE_STROOPS ?? 200_000),
   /** Where SettlementEvents are POSTed (Xpan's ingestion). Empty = disabled. */
   discoveryIngestUrl: process.env.DISCOVERY_INGEST_URL ?? '',
+  /** Bearer token discovery's ingest endpoint checks; must match its INGEST_TOKEN. */
+  discoveryIngestToken: process.env.INGEST_TOKEN ?? '',
   /** Optional bearer token; unset = open (local/private use only). */
   apiKey: process.env.FACILITATOR_API_KEY,
   corsOrigins: process.env.CORS_ORIGINS ?? '*',
