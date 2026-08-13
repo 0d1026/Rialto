@@ -28,3 +28,7 @@ CMD ["pnpm", "exec", "tsx", "src/index.ts"]
 FROM base AS embed-worker
 WORKDIR /app/packages/discovery
 CMD ["pnpm", "exec", "tsx", "src/embedding-worker-cli.ts"]
+
+FROM base AS runtime
+WORKDIR /app
+CMD ["sh", "-c", "cd packages/discovery && pnpm exec tsx src/index.ts"]
