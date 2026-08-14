@@ -26,6 +26,27 @@ h1, h2, h3, h4 {
   letter-spacing: -0.01em;
 }
 
+/* --- Rialto CTA: solid brand blue with the site's springy lift on hover --- */
+.rialto-cta {
+  color: #fff;
+  background: #375fe1;
+  transition:
+    transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 200ms ease,
+    background-color 200ms ease;
+}
+.rialto-cta:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px -10px rgb(55 95 225 / 0.5);
+  background: #4069ea;
+}
+.rialto-cta:active:not(:disabled) {
+  transform: translateY(0);
+}
+.rialto-cta:disabled {
+  opacity: 0.6;
+}
+
 /* --- Rialto interactions: lift + tint on hover (springy ease) --- */
 .lift {
   transition:

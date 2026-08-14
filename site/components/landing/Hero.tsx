@@ -1,5 +1,5 @@
 import HeroBackground from './HeroBackground';
-import HeroCrystal from './HeroCrystal';
+import HeroScene from './HeroScene';
 import { REPO_URL } from './content';
 import { Parallax, RevealMask } from './Reveal';
 
@@ -61,17 +61,17 @@ export default function Hero() {
           </p>
 
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-            <a href={REPO_URL} className="rialto-btn rialto-btn--primary">
-              View the repo ↗
+            <a href="/try" className="rialto-btn rialto-btn--primary">
+              Try it live ↗
             </a>
-            <a href="#pillars" className="rialto-btn rialto-btn--outline">
-              See what ships ↓
+            <a href={REPO_URL} className="rialto-btn rialto-btn--outline">
+              View the repo ↗
             </a>
           </div>
         </div>
 
         <Parallax speed={-40} className="rialto-hero-col-right" style={{ flex: '1 1 400px', maxWidth: 460, minWidth: 300 }}>
-          <HeroCrystal />
+          <HeroScene />
           <p style={{ fontSize: 13, color: 'var(--rialto-text-muted-2)', margin: '14px 4px 0', textAlign: 'center' }}>
             Discovery is always watching.
           </p>

@@ -3,6 +3,7 @@ import { navLinks, REPO_URL } from './content';
 
 export default function Nav() {
   return (
+    <header className="rialto-nav-bar">
     <nav
       className="rialto-nav"
       style={{
@@ -11,7 +12,7 @@ export default function Nav() {
         justifyContent: 'space-between',
         maxWidth: 'var(--rialto-content-max-width)',
         margin: '0 auto',
-        padding: '22px clamp(20px,5vw,48px)',
+        padding: '16px clamp(20px,5vw,48px)',
         gap: 24,
       }}
     >
@@ -58,5 +59,6 @@ export default function Nav() {
         </a>
       </div>
     </nav>
+    </header>
   );
 }

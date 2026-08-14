@@ -1,0 +1,14 @@
+{
+  "name": "rialto-live-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "End-to-end demo: discover, pay through the facilitator, settle on testnet, observe the catalog update",
+  "scripts": {
+    "demo": "node demo.mjs"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^16.2.0",
+    "@x402/stellar": "^2.22.0"
+  }
+}
