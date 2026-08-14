@@ -55,6 +55,7 @@ export default function HeroBackground() {
 
       <Parallax speed={-80} style={{ position: 'absolute', inset: 0 }}>
         <svg
+          className="rialto-constellation"
           viewBox="0 0 400 400"
           style={{ position: 'absolute', top: -40, right: -40, width: 420, height: 420, opacity: 0.55 }}
         >

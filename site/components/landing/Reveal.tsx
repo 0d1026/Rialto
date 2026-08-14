@@ -12,7 +12,7 @@ const itemVariants: Variants = {
   visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.6, ease: EASE } },
 };
 
-const viewport = { once: true, margin: '0px 0px -10% 0px' };
+const viewport = { once: true, margin: '0px 0px 12% 0px' };
 
 /** Fades + rises a single block into view the first time it scrolls into the viewport. */
 export function Reveal({
