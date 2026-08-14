@@ -31,11 +31,11 @@ export default function Cta() {
           }}
         >
           <RevealMask style={{ margin: '0 0 14px' }}>
-            <h2 style={{ fontFamily: 'var(--rialto-font-heading)', fontSize: 'clamp(26px,3.2vw,36px)', color: '#FFFFFF', margin: 0, fontWeight: 700 }}>
+            <h2 style={{ fontFamily: 'var(--rialto-font-heading)', fontSize: 'clamp(26px,3.4vw,42px)', color: '#FFFFFF', margin: 0, fontWeight: 700 }}>
               Follow the build, milestone by milestone
             </h2>
           </RevealMask>
-          <p style={{ fontSize: 16, color: 'var(--rialto-text-body-3)', maxWidth: 520, margin: '0 auto 32px', lineHeight: 1.6 }}>
+          <p style={{ fontSize: 'clamp(16px,1.1vw,19px)', color: 'var(--rialto-text-body-3)', maxWidth: 560, margin: '0 auto 32px', lineHeight: 1.6 }}>
             Code lands in the open.
           </p>
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center' }}>
