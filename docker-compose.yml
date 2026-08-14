@@ -62,6 +62,13 @@ services:
     depends_on:
       - discovery
 
+  site:
+    build:
+      context: .
+      target: site
+    ports:
+      - "3000:3000"
+
 volumes:
   catalog-data:
   embedding-model-cache:
