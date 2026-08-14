@@ -27,7 +27,7 @@ only pay endpoints it was already told about. Rialto adds the discovery layer:
 A live instance runs on Railway so reviewers can try it without any setup:
 
 - Facilitator: `https://facilitator-production-0beb.up.railway.app/supported`
-- Discovery: `https://rialto-production-97c9.up.railway.app/discovery/search?query=weather`
+- Discovery: `https://rialto-production-97c9.up.railway.app/discovery/search?query=stellar`
 - Federation peers: `https://rialto-production-97c9.up.railway.app/federation/peers`
 
 The deployed facilitator runs on Stellar **testnet** with a disposable testnet

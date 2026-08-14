@@ -20,8 +20,8 @@ export const RIALTO = {
     process.env.DEMO_PAYEE_PUBLIC ||
     'GDX57LT35SHXNCOF27JHG7HFUMVG7W7YSZMREQAY6UEBE23VU3UB6V2E',
   demoResource: 'https://demo-seller.rialto.dev/insights',
-  /** 0.01 USDC in atomic units (6 decimals). */
-  demoAmount: '10000',
+  /** 0.01 USDC in atomic units (7 decimals). */
+  demoAmount: '100000',
 } as const;
 
 export function explorerTx(hash: string): string {

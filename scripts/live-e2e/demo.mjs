@@ -34,7 +34,7 @@ const PAYER_SECRET = requireEnv('PAYER_SECRET');
 const PAYEE_PUBLIC = requireEnv('PAYEE_PUBLIC');
 
 const RESOURCE_URL = 'https://demo-seller.rialto.dev/insights';
-const AMOUNT = '10000';
+const AMOUNT = '100000';
 
 function requireEnv(name) {
   const v = process.env[name];
@@ -128,7 +128,7 @@ async function main() {
   for (let i = 0; i < 20; i++) {
     const current = await fetchResource();
     if (current?.metadata?.provenance === 'observed-settlement' &&
-        Number(current.metadata.settlementCount) > baseCount) {
+      Number(current.metadata.settlementCount) > baseCount) {
       item = current;
       break;
     }
