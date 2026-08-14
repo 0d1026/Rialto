@@ -29,13 +29,13 @@ export default function Adrs() {
               <p style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--rialto-text-muted-2)', fontWeight: 700, margin: '0 0 16px' }}>
                 {adr.label}
               </p>
-              <p style={{ fontFamily: 'var(--rialto-font-heading)', fontSize: 19, lineHeight: 1.5, color: '#EEF1FA', margin: '0 0 18px', fontWeight: 500 }}>
+              <p style={{ fontFamily: 'var(--rialto-font-heading)', fontSize: 'clamp(19px,1.3vw,22px)', lineHeight: 1.5, color: '#EEF1FA', margin: '0 0 18px', fontWeight: 500 }}>
                 {adr.quote}
               </p>
-              <p style={{ fontSize: 14, lineHeight: 1.6, color: 'var(--rialto-text-muted-1)', margin: '0 0 18px' }}>
+              <p style={{ fontSize: 'clamp(14px,0.9vw,16px)', lineHeight: 1.6, color: 'var(--rialto-text-muted-1)', margin: '0 0 18px' }}>
                 {adr.supporting}
               </p>
-              <a href={adr.href} style={{ fontSize: 14, fontWeight: 600 }}>
+              <a href={adr.href} style={{ fontSize: 'clamp(14px,0.9vw,16px)', fontWeight: 600 }}>
                 {adr.linkLabel}
               </a>
             </TiltCard>

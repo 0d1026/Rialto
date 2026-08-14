@@ -66,10 +66,10 @@ export default function HowItWorks() {
               >
                 {step.number}
               </div>
-              <p style={{ fontFamily: 'var(--rialto-font-heading)', fontSize: 16, color: '#FFFFFF', margin: 0, fontWeight: 600 }}>
+              <p style={{ fontFamily: 'var(--rialto-font-heading)', fontSize: 'clamp(16px,1.1vw,18px)', color: '#FFFFFF', margin: 0, fontWeight: 600 }}>
                 {step.title}
               </p>
-              <p style={{ fontSize: 14, color: 'var(--rialto-text-muted-1)', lineHeight: 1.55, margin: 0 }}>
+              <p style={{ fontSize: 'clamp(14px,0.9vw,16px)', color: 'var(--rialto-text-muted-1)', lineHeight: 1.55, margin: 0 }}>
                 {withInlineCode(step.description)}
               </p>
             </div>

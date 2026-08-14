@@ -21,7 +21,7 @@ export default function Hero() {
           <p
             style={{
               fontFamily: 'var(--rialto-font-heading)',
-              fontSize: 'clamp(16px,2vw,19px)',
+              fontSize: 'clamp(16px,2vw,21px)',
               color: 'var(--rialto-accent)',
               margin: '0 0 16px',
               fontWeight: 500,
@@ -34,7 +34,7 @@ export default function Hero() {
             <h1
               style={{
                 fontFamily: 'var(--rialto-font-heading)',
-                fontSize: 'clamp(38px,5vw,64px)',
+                fontSize: 'clamp(38px,5.4vw,74px)',
                 lineHeight: 1.04,
                 letterSpacing: '-0.02em',
                 fontWeight: 700,
@@ -48,10 +48,10 @@ export default function Hero() {
 
           <p
             style={{
-              fontSize: 'clamp(16px,1.6vw,18px)',
+              fontSize: 'clamp(16px,1.6vw,20px)',
               lineHeight: 1.6,
               color: 'var(--rialto-text-body-2)',
-              maxWidth: 520,
+              maxWidth: 560,
               margin: '0 0 32px',
             }}
           >
