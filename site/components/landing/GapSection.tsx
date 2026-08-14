@@ -13,7 +13,7 @@ export default function GapSection() {
       </Parallax>
 
       <Reveal>
-        <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr', gap: 40, maxWidth: 900 }}>
+        <div className="rialto-gap-grid">
           <p className="rialto-eyebrow" style={{ margin: '6px 0 0' }}>
             The gap
           </p>

@@ -3,18 +3,7 @@ import { navLinks, REPO_URL } from './content';
 
 export default function Nav() {
   return (
-    <nav
-      className="rialto-nav"
-      style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        maxWidth: 'var(--rialto-content-max-width)',
-        margin: '0 auto',
-        padding: '22px clamp(20px,5vw,48px)',
-        gap: 24,
-      }}
-    >
+    <nav className="rialto-nav">
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <img
           src="/logo-mark-transparent.png"
@@ -25,7 +14,7 @@ export default function Nav() {
           Rialto
         </span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(16px,3vw,36px)', flexWrap: 'wrap' }}>
+      <div className="rialto-nav-links">
         {navLinks.map((link) =>
           link.href.startsWith('/') ? (
             <Link

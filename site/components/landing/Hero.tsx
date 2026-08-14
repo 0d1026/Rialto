@@ -16,7 +16,7 @@ export default function Hero() {
     >
       <HeroBackground />
 
-      <div style={{ position: 'relative', display: 'flex', gap: 56, flexWrap: 'wrap', alignItems: 'center' }}>
+      <div className="rialto-hero-cols" style={{ position: 'relative' }}>
         <div className="rialto-hero-col-left" style={{ flex: '1 1 480px', maxWidth: 640 }}>
           <p
             style={{
@@ -70,7 +70,7 @@ export default function Hero() {
           </div>
         </div>
 
-        <Parallax speed={-40} className="rialto-hero-col-right" style={{ flex: '1 1 400px', maxWidth: 460, minWidth: 300 }}>
+        <Parallax speed={-40} className="rialto-hero-col-right" style={{ flex: '1 1 400px', maxWidth: 460 }}>
           <HeroCrystal />
           <p style={{ fontSize: 13, color: 'var(--rialto-text-muted-2)', margin: '14px 4px 0', textAlign: 'center' }}>
             Discovery is always watching.
