@@ -22,6 +22,20 @@ only pay endpoints it was already told about. Rialto adds the discovery layer:
 - the index **federates**: independent facilitators can register, external catalogs are
   ingested and cross-published, so a service settles anywhere but is findable everywhere.
 
+## Live deployment
+
+A live instance runs on Railway so reviewers can try it without any setup:
+
+- Facilitator: `https://facilitator-production-0beb.up.railway.app/supported`
+- Discovery: `https://rialto-production-97c9.up.railway.app/discovery/search?query=stellar`
+- Federation peers: `https://rialto-production-97c9.up.railway.app/federation/peers`
+
+The deployed facilitator runs on Stellar **testnet** with a disposable testnet
+key funded from Friendbot. It signs and pays fees for testnet settlements only
+and holds no real funds. The private key stays in the host's environment
+settings and is never committed; only the matching public key appears on
+`/supported`, which is safe to share and cannot spend anything.
+
 ## Repository layout
 
 | Path | What it is |

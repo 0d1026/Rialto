@@ -122,7 +122,7 @@ export function createApp(): Express {
           bazaarMetadata: extractBazaarMetadata(payload, requirements),
           settledAt: new Date().toISOString(),
         };
-        postSettlementEvent(Env.discoveryIngestUrl, event);
+        postSettlementEvent(Env.discoveryIngestUrl, event, Env.discoveryIngestToken);
       }
 
       res.json(response);

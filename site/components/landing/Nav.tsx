@@ -3,7 +3,19 @@ import { navLinks, REPO_URL } from './content';
 
 export default function Nav() {
   return (
-    <nav className="rialto-nav">
+    <header className="rialto-nav-bar">
+    <nav
+      className="rialto-nav"
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        maxWidth: 'var(--rialto-content-max-width)',
+        margin: '0 auto',
+        padding: '16px clamp(20px,5vw,48px)',
+        gap: 24,
+      }}
+    >
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <img
           src="/logo-mark-transparent.png"
@@ -47,5 +59,6 @@ export default function Nav() {
         </a>
       </div>
     </nav>
+    </header>
   );
 }

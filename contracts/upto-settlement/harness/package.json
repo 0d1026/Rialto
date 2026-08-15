@@ -1,0 +1,13 @@
+{
+  "name": "upto-settlement-harness",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Live testnet harness for the UptoSettlement contract",
+  "scripts": {
+    "settle": "node live-settle.mjs"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^16.2.0"
+  }
+}
