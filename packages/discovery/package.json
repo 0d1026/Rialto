@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "typecheck:test": "tsc -p tsconfig.test.json",
     "ingest": "tsx src/ingest-cli.ts",
+    "federation-sync": "tsx src/federation-sync-cli.ts",
     "embed-worker": "tsx src/embedding-worker-cli.ts",
     "test": "vitest run test/unit test/integration",
     "test:watch": "vitest test/unit test/integration",

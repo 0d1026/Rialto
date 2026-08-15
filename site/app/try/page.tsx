@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useState, type FormEvent } from 'react';
 import { Reveal, RevealMask } from '@/components/landing/Reveal';
 import { REPO_URL } from '@/components/landing/content';
+import searchQuality from '@/lib/search-quality.json';
 import './try.css';
 
 const NODES = [
@@ -269,6 +270,67 @@ export default function TryPage() {
               ))}
             </div>
           )}
+        </section>
+      </Reveal>
+
+      {/* search quality, measured in CI */}
+      <Reveal>
+        <section className="try-section">
+          <div className="try-panel">
+            <div className="try-sq-head">
+              <span className="try-dot" aria-hidden /> Search quality, measured in CI
+            </div>
+            <p className="try-lede" style={{ marginTop: 10 }}>
+              Known-item retrieval scored on a live sample of the catalog. A fixed golden-set
+              regression gate blocks any drop when the ranking code changes, so this is measured,
+              not asserted.
+            </p>
+            <div className="try-metrics">
+              <div className="try-metric">
+                <div className="try-metric__num">{searchQuality.ndcgAt10.toFixed(2)}</div>
+                <div className="try-metric__label">nDCG@10</div>
+              </div>
+              <div className="try-metric">
+                <div className="try-metric__num">{searchQuality.mrr.toFixed(2)}</div>
+                <div className="try-metric__label">MRR</div>
+              </div>
+              <div className="try-metric">
+                <div className="try-metric__num">{searchQuality.recallAt20.toFixed(2)}</div>
+                <div className="try-metric__label">Recall@20</div>
+              </div>
+            </div>
+            <div className="try-sq-meta">
+              {searchQuality.catalogSize.toLocaleString()} services indexed ·{' '}
+              {searchQuality.sampleSize} sampled · known-item upper bound ·{' '}
+              {new Date(searchQuality.generatedAt).toISOString().slice(0, 10)}
+            </div>
+            <div className="try-sq-links">
+              <a
+                className="try-link"
+                href={`${REPO_URL}/actions/workflows/rolling-eval.yml`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Nightly run ↗
+              </a>
+              <a
+                className="try-link"
+                href={`${REPO_URL}/tree/main/packages/eval-harness`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Eval harness ↗
+              </a>
+              <a
+                className="try-link"
+                href={`${REPO_URL}/tree/main/packages/eval-harness/src/fixtures`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Golden set ↗
+              </a>
+            </div>
+          </div>
         </section>
       </Reveal>
 
