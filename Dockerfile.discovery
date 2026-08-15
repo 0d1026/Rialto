@@ -1,0 +1,22 @@
+# Dedicated image for the discovery embedding worker on Railway.
+#
+# Railway's Dockerfile builder always builds the final stage and offers no
+# target picker, so the multi-stage Dockerfile's last stage (`site`) would be
+# built for every service. This single-stage file keeps the discovery package
+# and its dependencies as the final image, so a rebuild produces a working
+# worker instead of the site image. embed-worker points its Dockerfile Path here.
+FROM node:22-slim
+RUN corepack enable && corepack prepare pnpm@10.17.1 --activate
+WORKDIR /app
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY packages/shared/package.json packages/shared/
+COPY packages/facilitator/package.json packages/facilitator/
+COPY packages/discovery/package.json packages/discovery/
+COPY site/package.json site/
+RUN pnpm config set fetch-retries 5 && \
+    pnpm config set fetch-retry-mintimeout 20000 && \
+    pnpm config set network-concurrency 8 && \
+    pnpm install --frozen-lockfile --prod=false
+COPY packages ./packages
+WORKDIR /app/packages/discovery
+CMD ["pnpm", "exec", "tsx", "src/embedding-worker-cli.ts"]
