@@ -20,7 +20,7 @@ export default function Adrs() {
         </div>
       </Reveal>
 
-      <Stagger style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 'var(--rialto-grid-gap-card)' }}>
+      <Stagger className="rialto-grid-2">
         {adrCards.map((adr) => (
           <StaggerItem key={adr.label}>
             <TiltCard

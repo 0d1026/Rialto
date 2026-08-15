@@ -192,6 +192,43 @@
   }
 }
 
+/* Nav layout. Mobile: logo stays on the first row with the GitHub pill, and
+   the text links wrap onto a centered second row — no hamburger, no dead
+   space, nothing overflows. */
+.rialto-landing .rialto-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: var(--rialto-content-max-width);
+  margin: 0 auto;
+  padding: 22px clamp(20px, 5vw, 48px);
+  gap: 24px;
+}
+
+.rialto-landing .rialto-nav-links {
+  display: flex;
+  align-items: center;
+  gap: clamp(16px, 3vw, 36px);
+  flex-wrap: wrap;
+}
+
+@media (max-width: 760px) {
+  .rialto-landing .rialto-nav {
+    flex-wrap: wrap;
+    row-gap: 12px;
+    padding-top: 18px;
+  }
+
+  .rialto-landing .rialto-nav-links {
+    flex: 1 1 100%;
+    order: 3;
+    justify-content: center;
+    gap: 12px 22px;
+    padding-top: 14px;
+    border-top: 1px solid var(--rialto-border-faint);
+  }
+}
+
 @keyframes rialto-twinkle {
   0%,
   100% {
@@ -593,6 +630,72 @@
 
 .rialto-landing .rialto-hero-col-right {
   animation: rialto-fade-in 0.8s var(--rialto-ease) 0.1s both;
+}
+
+/* Multi-column layouts that must collapse to a single column on mobile.
+   The grids that stay side-by-side on small screens (hero columns, rows)
+   already flex/wrap via their own rules above; these are the fixed-track
+   grids that would otherwise crush their content below ~760px. */
+.rialto-landing .rialto-hero-cols {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 56px;
+}
+
+.rialto-landing .rialto-gap-grid {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 40px;
+  max-width: 900px;
+}
+
+.rialto-landing .rialto-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--rialto-grid-gap-card);
+}
+
+.rialto-landing .rialto-timeline {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+  position: relative;
+}
+
+.rialto-landing .rialto-timeline-line {
+  position: absolute;
+  top: 19px;
+  left: 5%;
+  right: 5%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+@media (max-width: 760px) {
+  .rialto-landing .rialto-hero-cols {
+    gap: 40px;
+  }
+
+  .rialto-landing .rialto-gap-grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .rialto-landing .rialto-grid-2 {
+    grid-template-columns: 1fr;
+  }
+
+  .rialto-landing .rialto-timeline {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  /* The single horizontal connector only works for 4-up; stacked steps
+     read fine on their own with the numbered dots. */
+  .rialto-landing .rialto-timeline-line {
+    display: none;
+  }
 }
 
 /* --- Live stats strip --- */

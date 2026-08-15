@@ -35,8 +35,8 @@ export default function HowItWorks() {
         </div>
       </Reveal>
 
-      <Stagger style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 0, position: 'relative' }}>
-        <div style={{ position: 'absolute', top: 19, left: '5%', right: '5%', height: 1, background: 'rgba(255,255,255,0.12)' }} />
+      <Stagger className="rialto-timeline">
+        <div className="rialto-timeline-line" />
         {timelineSteps.map((step, i) => (
           <StaggerItem key={step.number}>
             <div

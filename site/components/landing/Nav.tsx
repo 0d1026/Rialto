@@ -26,7 +26,7 @@ export default function Nav() {
           Rialto
         </span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 'clamp(16px,3vw,36px)', flexWrap: 'wrap' }}>
+      <div className="rialto-nav-links">
         {navLinks.map((link) =>
           link.href.startsWith('/') ? (
             <Link

@@ -35,7 +35,7 @@ export default function Proof() {
         </div>
       </Reveal>
 
-      <Stagger style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 'var(--rialto-grid-gap-card)' }}>
+      <Stagger className="rialto-grid-2">
         {proofCards.map((card) => (
           <StaggerItem key={card.title}>
             <TiltCard className="rialto-card--bordered">
