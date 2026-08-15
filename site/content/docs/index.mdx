@@ -43,8 +43,10 @@ Built and tested end to end - not a plan, a running system:
    ([embeddings](/docs/search/dense-retrieval)) - and ranked by real settlement
    history. Backed by a public, [re-runnable eval harness](/docs/search/evaluation-methodology)
    with [real numbers](/docs/benchmarks), not an unverified claim.
-3. **Federation** - independent facilitators can register, external catalogs are
-   ingested and cross-published: a service settles anywhere but is findable everywhere.
+3. **Federation** - independent facilitators can self-register into an instance's peer
+   list, and external catalogs (CDP, AlgoVoi) are pulled in directly over HTTPS via a
+   manual CLI, through the same integrity gauntlet every entry gets. Cross-publishing
+   isn't built yet, and discovery is manual - see below for the planned upgrade.
 
 Still design-stage or spec-only, stated plainly:
 
@@ -53,15 +55,25 @@ Still design-stage or spec-only, stated plainly:
 5. **An MCP server** - so agents will eventually run discover → pay → verify from
    inside their own runtime. Today, the discovery HTTP API is callable directly (see
    the [buyer/agent guide](/docs/guides/buyers)) while the MCP wrapper is built.
+6. **Federation peer discovery over a Kademlia DHT** - a proposal ([ADR
+   0003](/docs/decisions/federation-dht-discovery), full mechanism on the
+   [Federation](/docs/federation) page) to replace manual peer registration with the
+   same peer-discovery primitive BitTorrent and IPFS use, so a facilitator becomes
+   findable ecosystem-wide without registering with any single index. Catalogs would
+   still be pulled directly over HTTPS from the source, no relay hop. Design only -
+   no DHT code exists yet.
 
 ## Where to go next
 
 - [Architecture](/docs/architecture) - components, flows, trust boundaries, diagram
 - [How search works](/docs/search/lexical-bm25) - the actual ranking math, derived
+- [Federation](/docs/federation) - the planned Kademlia DHT peer-discovery design
+  (proposal, not yet built)
 - [Threat model](/docs/threat-model) - trust boundaries, and one real bug found and
   fixed during its own research
 - [upto scheme spec](/docs/scheme-upto-stellar) - the full Stellar scheme specification
-- [Design decisions](/docs/decisions/upto-onchain-cap) - why the cap lives on-chain, and
-  [how search quality is proven](/docs/decisions/search-stack-and-eval)
+- [Design decisions](/docs/decisions/upto-onchain-cap) - why the cap lives on-chain,
+  [how search quality is proven](/docs/decisions/search-stack-and-eval), and
+  [why federation is moving to a DHT](/docs/decisions/federation-dht-discovery)
 - Guides for [sellers](/docs/guides/sellers), [buyers/agents](/docs/guides/buyers), and
   [operators](/docs/guides/operators)

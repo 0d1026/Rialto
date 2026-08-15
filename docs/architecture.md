@@ -172,15 +172,35 @@ exactly the spec's: `/discovery/resources` with
 errored or the embedding worker has a backlog, false only when the full pipeline ran).
 
 **Federation** - the answer to the open interop question (stellar/x402-stellar#50: the
-registration path for independent facilitators is undetermined):
+registration path for independent facilitators is undetermined). What's built today is
+a **central-registration model, scoped honestly**:
 
-- a registration endpoint where any independent facilitator lists itself and its catalog
-  feed
-- scheduled ingestion of external catalogs (CDP-shaped discovery APIs and
-  `/.well-known/x402` self-descriptions), entries marked `ingested` and passed through
-  the same integrity gauntlet
-- cross-publishing: Rialto's own catalog is exportable in the same shapes it ingests, so
-  other indexes can carry Stellar services without asking us
+- `POST /federation/register` / `GET /federation/peers` - a facilitator declares itself
+  (`name`, `baseUrl`, `catalogUrl`) into this instance's `federation_peers` table;
+  transparent, but only ever a local list, and only ever populated by whoever already
+  knows to call it.
+- ingestion of external catalogs (CDP-shaped exports, AlgoVoi's live feed) is a
+  **manual** CLI invocation (`ingest-cli.ts`: `pnpm ingest cdp <dir>` /
+  `pnpm ingest algovoi [url]`) - a direct HTTPS pull from the source, entries marked
+  `ingested` and passed through the identical integrity gauntlet every other entry
+  gets. Registering a `catalogUrl` does **not** trigger automatic ingestion from it
+  (`docs/threat-model.md` §6) - that's a deliberate containment boundary today, not yet
+  a scheduled job.
+- cross-publishing (Rialto's own catalog exported in a shape others can ingest) is not
+  implemented at all yet - only ingestion *into* Rialto is (`docs/documentation-audit.md`
+  §2.7).
+
+The real gap this leaves: a facilitator only becomes findable if it already knows to
+register with an index, or an index operator already knows to pull from it - N
+registries instead of one is still a registry problem. **[ADR 0003](decisions/0003-federation-dht-discovery.md)**
+proposes closing that gap with a Kademlia DHT for the discovery step only - the same
+peer-discovery primitive BitTorrent and IPFS use, not their full stack - while keeping
+catalogs pulled directly over HTTPS from the source facilitator, exactly as
+`ingest-cli.ts` already does, so there's still no relay hop and no custom
+message-signing scheme required. Worked out in full, including why not a full libp2p
+node, in [`docs/federation/dht-peer-discovery.md`](federation/dht-peer-discovery.md).
+**This is a design proposal, not implemented** - the bullets above are the accurate
+description of what runs today.
 
 A service settles anywhere but is findable everywhere. Stellar must not be a walled
 garden; neither will Rialto be one.
