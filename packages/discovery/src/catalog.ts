@@ -181,12 +181,13 @@ export class Catalog {
     const searchA = [e.serviceName ?? '', ...(e.tags ?? [])].join(' ').trim();
     const searchB = e.description ?? '';
     const searchC = e.resource;
+    const settlementDelta = provenance === 'observed-settlement' ? 1 : 0;
     const inserted = await this.pool.query<{ id: number }>(
       `INSERT INTO resources
         (resource, tool_name, type, x402_version, accepts, description, mime_type,
          service_name, tags, icon_url, route_template, extensions, provenance, source,
          search_a, search_b, search_c, settlement_count, last_updated)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17, 1, now())
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17, $18, now())
        ON CONFLICT (resource, tool_name) DO UPDATE SET
          type = EXCLUDED.type,
          x402_version = EXCLUDED.x402_version,
@@ -205,7 +206,7 @@ export class Catalog {
          -- concurrent ON CONFLICT DO UPDATE on the same conflict key via the
          -- row's lock, so two racing settlements for the same resource each
          -- see the other's committed increment, never lose one.
-         settlement_count = resources.settlement_count + 1,
+         settlement_count = resources.settlement_count + $18,
          last_updated = now()
        RETURNING id`,
       [
@@ -226,6 +227,7 @@ export class Catalog {
         searchA,
         searchB,
         searchC,
+        settlementDelta,
       ],
     );
     const resourceId = inserted.rows[0].id;

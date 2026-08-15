@@ -1,0 +1,10 @@
+{
+  "generatedAt": "2026-08-15T18:15:06.845Z",
+  "discoveryUrl": "https://rialto-production-97c9.up.railway.app",
+  "catalogSize": 13976,
+  "sampleSize": 20,
+  "metric": "known-item-upper-bound",
+  "ndcgAt10": 0.95,
+  "mrr": 0.95,
+  "recallAt20": 0.95
+}

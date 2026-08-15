@@ -1,0 +1,47 @@
+name: rolling search-quality eval
+
+# Runs the rolling live-catalog eval every night and commits the numbers back,
+# so the "Search quality, measured in CI" panel shows real, accumulating history
+# instead of a fabricated trend. Hits the live discovery HTTP API only - no DB.
+on:
+  schedule:
+    - cron: '0 3 * * *' # 03:00 UTC nightly
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rolling-eval
+  cancel-in-progress: false
+
+jobs:
+  rolling:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.17.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Run rolling eval and record
+        working-directory: packages/eval-harness
+        env:
+          DISCOVERY_URL: https://rialto-production-97c9.up.railway.app
+          ROLLING_SAMPLE: '40'
+        run: pnpm rolling:record
+      - name: Commit updated numbers
+        run: |
+          git config user.name "rialto-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add site/lib/search-quality.json site/lib/search-quality-history.json
+          if git diff --cached --quiet; then
+            echo "no change in search-quality numbers"
+          else
+            git commit -m "chore: nightly rolling search-quality eval [skip ci]"
+            git push
+          fi
