@@ -1,0 +1,204 @@
+---
+icon: Network
+title: Federation
+description: "How a facilitator becomes discoverable across the wider x402 ecosystem - a Kademlia DHT for peer discovery, direct HTTPS pull for catalogs, no relay hop."
+---
+
+**Design proposal, not implemented.** No DHT client exists in this repo. This page
+explains the mechanism in enough depth to build from later; it is not a description of
+running code. What's actually built today - `POST /federation/register`,
+`GET /federation/peers`, and a manual catalog-ingestion CLI - is described accurately
+in [Architecture](/docs/architecture) §3.2 and covered from a risk-accounting angle in
+the [threat model](/docs/threat-model) §6. The decision record behind this proposal is
+[ADR 0003](/docs/decisions/federation-dht-discovery).
+
+## The problem, precisely
+
+Today, a facilitator is only findable by Rialto if it already knows Rialto exists and
+calls `POST /federation/register`, or if a Rialto operator already knows about it and
+manually runs the ingest CLI against it. Both directions require the two parties to
+already be aware of each other by some out-of-band means. That's fine between two
+operators who've talked to each other; it doesn't answer "how does a brand-new,
+independent facilitator become findable by the wider x402 ecosystem without
+individually introducing itself to every index that might carry it."
+
+That's a lookup problem with a specific shape: _given a key, find who holds the value
+for it, without asking a central party_. That shape has a well-known solution.
+
+## Kademlia from first principles
+
+Kademlia is a distributed hash table: a way for a network of nodes to collectively
+store and look up key→value pairs with no coordinator, where every node knows a
+little about the network and any node can find any key in a small, bounded number of
+hops. It's the same peer-discovery primitive BitTorrent's Mainline DHT (BEP 5) and
+IPFS's content routing are built on.
+
+### Node IDs and the XOR distance metric
+
+Every node picks (or derives) an ID in the same address space as the keys it will
+store - conventionally a 160-bit or 256-bit number. **Distance** between two IDs `a`
+and `b` is:
+
+```
+d(a, b) = a XOR b        (interpreted as an unsigned integer)
+```
+
+That's a real distance metric - `d(a,a)=0`, `d(a,b)=d(b,a)`, and it satisfies the
+triangle inequality - which is what lets independently-run routing tables agree on
+"who is near this key" without comparing notes. The property that actually matters for
+routing: for any node and any distance, there is exactly one other node at exactly
+that distance. Every node's neighborhood is well-defined no matter who's looking.
+
+### k-buckets: a small routing table that still finds anyone
+
+A node keeps, for each distance range `[2^i, 2^(i+1))` from its own ID, up to `k`
+contacts (Kademlia's paper uses `k=20`; BitTorrent's Mainline DHT uses 8) - a
+**k-bucket** per range. The result: fine-grained knowledge of the ID-space
+neighborhood right around a node's own ID, and only a handful of signposts for each
+of the wide, far regions of the rest of the network. Total table size is
+`O(k log n)` - a few hundred contacts, bounded, even for a network with millions of
+participants.
+
+### Looking something up: iterative, and fast
+
+To resolve a key, a node asks its closest known contacts for _their_ closest known
+contacts to that key, repeats against whoever's now closest, and stops when a round
+returns nothing closer than what's already been found. Each round roughly halves the
+remaining distance to the target, so this converges in `O(log n)` hops - a
+million-node network resolves in roughly 20 hops. This is the exact mechanism that
+makes BitTorrent DHT lookups and IPFS content routing fast at real internet scale.
+
+**Worked example**, small enough to check by hand (4-bit space, real deployments use
+160+ bits): target key `K = 1001`, and a node looking it up knows four contacts:
+
+| contact | ID     | `K XOR contact` | decimal distance |
+| ------- | ------ | --------------- | ---------------- |
+| A       | `1000` | `0001`          | 1                |
+| C       | `1011` | `0010`          | 2                |
+| D       | `0001` | `1000`          | 8                |
+| B       | `0110` | `1111`          | 15               |
+
+A is closest (distance 1 - it differs from `K` in only the lowest bit). The lookup
+queries the closest known contacts first; if none holds the value directly, they
+return _their_ closest-known contacts to `1001`, which - because they're already near
+the target - typically close the remaining gap in the very next round.
+
+## The same primitive BitTorrent and IPFS use
+
+Both systems draw the same line this proposal draws: **the DHT stores pointers, never
+the payload.**
+
+- **BitTorrent Mainline DHT** - key = a torrent's infohash, value = the swarm's peer
+  list. A client resolves the infohash, then downloads the file over a **direct**
+  peer-to-peer connection - never through the DHT.
+- **IPFS content routing** - key = a content identifier, value = a provider record
+  ("peer X has this block"). A client resolves the CID, then fetches the block over a
+  **direct** connection to that provider.
+
+Rialto's proposal is the same shape one level up: key = a facilitator's node ID,
+value = `{baseUrl, catalogUrl}` - a pointer, not the catalog. The catalog is always
+fetched with a direct HTTPS request to the facilitator the pointer names.
+
+## Rialto's planned DHT record
+
+```
+key   = facilitator node ID   (derivation: open question, see ADR 0003)
+value = {
+  baseUrl:    string   # e.g. https://facilitator.example.com
+  catalogUrl: string   # the discovery feed this facilitator exposes for pulling
+}
+```
+
+A new facilitator joins by contacting a small set of well-known bootstrap nodes,
+performing a lookup for its own ID (which simultaneously populates its routing table
+and announces its presence), then storing its own record. Looking up a _specific_
+peer whose ID is already known is a direct lookup. Discovering peers you don't
+already have an ID for is a different problem than what Kademlia alone solves -
+BitTorrent and IPFS both lean on a secondary rendezvous convention for that; Rialto's
+design would need the same, named here as an open gap rather than assumed solved.
+
+## Why not a full libp2p node
+
+|                       | libp2p                       | This proposal's scope                                                                |
+| --------------------- | ---------------------------- | ------------------------------------------------------------------------------------ |
+| Transport negotiation | TCP, QUIC, WebSocket, WebRTC | One: HTTPS - every facilitator already runs an HTTPS server                          |
+| Stream multiplexing   | Yes                          | Not needed - discrete request/response, no long-lived streams                        |
+| NAT traversal / relay | Yes                          | Not needed - facilitators are operator-run public services, not devices behind a NAT |
+| Pubsub                | Yes                          | Not needed - discover-then-pull is a poll model, not a broadcast one                 |
+| Kademlia DHT          | One module among many        | The entire thing needed                                                              |
+
+Pulling in a full libp2p stack to get to its one relevant module means adopting its
+whole transport/security/muxer negotiation surface for a narrower problem than the
+framework is built to solve. A client scoped to exactly the four Kademlia RPCs (ping,
+store, find-node, find-value) is small and auditable - and there's nothing in the
+protocol that requires UDP as a transport. An HTTP-transported variant would keep the
+whole federation stack to "things that speak HTTPS," consistent with the rest of
+this project - the current leaning, not yet a final decision.
+
+## The data plane: direct pull, no relay
+
+Once a peer's `baseUrl`/`catalogUrl` is resolved - by DHT lookup in this proposal, or
+by manual registration today - fetching its catalog doesn't change: a plain HTTPS
+GET, direct, no intermediary. This is exactly what today's manual ingestion CLI
+already does for external catalogs; the proposal only changes _how the URL is found_,
+never _how it's fetched_.
+
+<Mermaid
+  chart={`flowchart LR
+    subgraph today["Today: manual, but already direct"]
+        OP["operator runs<br/>the ingest CLI"] --> FETCH1["HTTPS GET<br/>direct to source"]
+    end
+    subgraph proposed["Proposed: automatic discovery, same direct pull"]
+        LOOKUP["Kademlia lookup"] --> RECORD["{baseUrl, catalogUrl}"]
+        RECORD --> FETCH2["HTTPS GET<br/>direct to source"]
+    end
+    FETCH1 --> GAUNTLET["integrity gauntlet<br/>(unchanged)"]
+    FETCH2 --> GAUNTLET
+    GAUNTLET --> CATALOG[("local catalog,<br/>provenance = ingested")]
+`}
+/>
+
+**What "no relay hop" means, precisely**: no third server sits between the requesting
+facilitator and the source, forwarding or rewriting the catalog payload. If a design
+instead routed every pull through a relay, that relay becomes a place a listing could
+be silently altered in transit - and the only way to catch that is for the source to
+sign every entry end-to-end so the requester can verify the relay didn't tamper with
+it. A direct connection removes the hop tampering would happen at, so it removes the
+need for the signature scheme that would otherwise have to catch it. TLS between the
+two parties already guarantees the requester receives exactly what the source sent.
+
+**What doesn't change**: every pulled entry still runs through the same integrity
+gauntlet that validates a live settlement's metadata - unconditionally, regardless of
+provenance. The DHT and the direct pull only change _how a peer is found_ and _how
+its catalog is fetched_, never how much that catalog's content is trusted once it
+arrives. A malicious facilitator with a perfectly valid DHT record and a perfectly
+direct HTTPS connection can still only get entries in that pass the same gauntlet
+everything else does.
+
+## Impact
+
+Stellar services stay discoverable across the wider x402 ecosystem without needing a
+gossip network's operational weight, a full libp2p node's dependency surface, or a
+single registry's single point of control - closing the open interop question
+[stellar/x402-stellar#50](https://github.com/stellar/x402-stellar/issues/50) without installing a new central party in its place.
+
+## Threat model, briefly
+
+Full accounting lives in the [threat model](/docs/threat-model) §6. In short: a DHT
+adds Sybil/eclipse-style attack surface against the _lookup_ step (a known, studied
+weakness of vanilla Kademlia, with known mitigation families). It does **not** add any
+new way to get untrusted content trusted - that boundary is the integrity gauntlet,
+and it doesn't move regardless of how a peer was discovered.
+
+## What's not decided yet
+
+- Node ID derivation - random, or tied to a facilitator's own signing key/domain.
+- Bootstrap node list - who runs the first ones, how new deployments find them.
+- Record lifetime - TTL, republish interval, offline handling.
+- Record authenticity - whether the classic Sybil-forged-record weakness needs a
+  dedicated fix, or is adequately covered by the integrity gauntlet catching bad
+  content regardless.
+- Transport - HTTP-carried Kademlia (current leaning) vs. classic UDP.
+- Build vs. adopt an existing Kademlia implementation.
+
+See [ADR 0003](/docs/decisions/federation-dht-discovery) for the full decision record.

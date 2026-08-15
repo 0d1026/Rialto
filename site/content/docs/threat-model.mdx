@@ -226,6 +226,36 @@ or automatic job triggered by registration. This means registering a malicious
 - a meaningful containment boundary, though also a manual step that could be
 automated later without re-reading this section first.
 
+**Forward-looking, not built**: [ADR 0003](/docs/decisions/federation-dht-discovery)
+proposes replacing manual peer registration with a Kademlia DHT for the discovery step
+(mechanism: [Federation](/docs/federation)). Recorded here now, ahead of any
+implementation, so the threat surface it would add is on the record before it exists
+rather than retrofitted after:
+
+- **Sybil / eclipse attacks on lookups** - a cluster of hostile nodes positioned near a
+  target key in the DHT's ID space can attempt to intercept or answer lookups for that
+  key before the legitimate holder is reached. A known, studied weakness of vanilla
+  Kademlia (not specific to this proposal), with known mitigation families
+  (node-ID proof-of-work, querying multiple disjoint paths and cross-checking
+  answers) - which family gets adopted is one of ADR 0003's open questions, not yet
+  decided.
+- **Poisoned DHT records** - a forged record can point a client's lookup at a
+  `catalogUrl` under attacker control. This does **not** bypass the integrity gauntlet
+  - it runs on every ingested entry regardless of how the source peer was found,
+  unchanged from the manual-registration model. A poisoned record can at worst get a
+  client to *pull from* a malicious source; it cannot get malicious content *trusted*
+  once pulled, any more than a malicious `catalogUrl` typed by hand into today's
+  ingest CLI could.
+- **What direct-pull removes, not adds**: because a resolved peer's catalog is always
+  fetched with a direct HTTPS connection (never through a relay), the DHT proposal
+  does **not** introduce an in-transit tampering surface the current manual-pull model
+  doesn't already have - both models pull directly from source today and would
+  continue to.
+
+None of the above changes this section's actual, current risk accounting - no DHT
+code runs anywhere in this repo. It's recorded so the eventual implementation is
+reviewed against a threat model that already anticipated it.
+
 ## 7. Secrets and operational hygiene
 
 `FACILITATOR_STELLAR_PRIVATE_KEY`, `INGEST_TOKEN`, `FACILITATOR_API_KEY` are read from

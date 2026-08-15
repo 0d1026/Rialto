@@ -12,11 +12,11 @@ loop. That equivalence is itself a useful check that the migration didn't change
 
 ## Results
 
-| configuration       | nDCG@10 | MRR   | Recall@20 |
-|----------------------|---------|-------|-----------|
-| bm25-only             | 0.442   | 0.333 | 0.433     |
-| dense-only             | 0.981   | 0.867 | 1.000     |
-| fused+settlement       | 0.981   | 0.867 | 1.000     |
+| configuration    | nDCG@10 | MRR   | Recall@20 |
+| ---------------- | ------- | ----- | --------- |
+| bm25-only        | 0.442   | 0.333 | 0.433     |
+| dense-only       | 0.981   | 0.867 | 1.000     |
+| fused+settlement | 0.981   | 0.867 | 1.000     |
 
 Query set: 15 queries, `packages/eval-harness/src/fixtures/golden-queries.ts`, across
 five categories (exact-name, paraphrase, filtered, no-result, adversarial). Catalog: 18
@@ -28,7 +28,7 @@ yet - stated there directly, not smoothed over here).
 
 ## What the numbers say
 
-**BM25-only scores meaningfully lower (0.442 vs 0.981 nDCG@10) than dense/fused.** The
+\*\*BM25-only scores meaningfully lower (0.442 vs 0.981 nDCG@10) than dense/
 query set is deliberately paraphrase-heavy - `is it going to rain tomorrow`, `how much is
 bitcoin worth right now` - and those share zero vocabulary with the resources that answer
 them (`WeatherCo`/"precipitation and temperature predictions", `CoinWatch`/"cryptocurrency
