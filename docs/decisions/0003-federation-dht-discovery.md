@@ -7,7 +7,7 @@ yet" section below and the deep-dive at
 
 ## Context
 
-`stellar/x402-stellar#50` leaves the registration path for independent facilitators
+[stellar/x402-stellar#50](https://github.com/stellar/x402-stellar/issues/50) leaves the registration path for independent facilitators
 undetermined - stated as an open interop question, not answered by the base x402 spec.
 Rialto's federation layer (`docs/architecture.md` §3.2) currently answers it like this:
 
@@ -19,9 +19,9 @@ Rialto's federation layer (`docs/architecture.md` §3.2) currently answers it li
   triggered automatically by registration.
 
 This works, and it is honestly scoped (see `docs/threat-model.md` §6). But it has a
-real ceiling: a facilitator only becomes discoverable by *this* instance if it already
+real ceiling: a facilitator only becomes discoverable by _this_ instance if it already
 knows this instance exists and manually registers, and it only becomes discoverable
-*through* this instance if an operator manually runs the ingest CLI against it. There
+_through_ this instance if an operator manually runs the ingest CLI against it. There
 is no path by which a brand-new, independent facilitator becomes findable across the
 wider x402 ecosystem without first tracking down and individually registering with
 every index that might carry it - which is a central-registry problem wearing a
@@ -51,7 +51,7 @@ routing are built on, not the whole libp2p stack either of them ships alongside 
   set of well-known bootstrap nodes, the same way a new BitTorrent client bootstraps
   into the Mainline DHT.
 - Once joined, it **publishes a DHT record** mapping its node ID to `{baseUrl,
-  catalogUrl}` - the DHT equivalent of BitTorrent storing a swarm's peer list under an
+catalogUrl}` - the DHT equivalent of BitTorrent storing a swarm's peer list under an
   infohash, or IPFS storing a provider record under a content ID. The DHT never stores
   the catalog itself, only the pointer to where it lives.
 - Discovery is a Kademlia iterative lookup: no central authority is queried, no
@@ -85,7 +85,7 @@ guarantee. A relay is exactly the thing that would reintroduce the need for one.
   facilitator is already a reachable HTTPS server. Revisit only if federation grows
   into needing push/subscribe rather than discover-then-pull.
 - **On-chain Soroban registry** (mentioned as a stretch goal in `architecture.md` §6) -
-  rejected as the *primary* discovery mechanism: rent/TTL overhead, and a chain write
+  rejected as the _primary_ discovery mechanism: rent/TTL overhead, and a chain write
   on every facilitator join/leave is disproportionate. Nothing here forecloses using a
   chain later as a root-of-trust anchor for the DHT's bootstrap node list.
 - **DNS-based discovery** (e.g. signed TXT records) - considered, not adopted as
@@ -97,7 +97,7 @@ guarantee. A relay is exactly the thing that would reintroduce the need for one.
 ## Consequences
 
 - Facilitators become discoverable ecosystem-wide without registering with Rialto
-  specifically or with any other single index - answers `stellar/x402-stellar#50`
+  specifically or with any other single index - answers [stellar/x402-stellar#50](https://github.com/stellar/x402-stellar/issues/50)
   without installing a new central party in its place.
 - Operational weight stays low: a Kademlia client is a routing table plus four RPCs
   (§2 of the deep-dive), a small and well-understood component next to a gossip
@@ -117,7 +117,7 @@ guarantee. A relay is exactly the thing that would reintroduce the need for one.
 Named explicitly rather than left implicit:
 
 - **Node ID derivation** - random, or derived from a facilitator's own signing
-  key/domain (the latter would let a lookup target a *specific* known facilitator by
+  key/domain (the latter would let a lookup target a _specific_ known facilitator by
   a stable identity rather than only a random point in the ID space).
 - **Bootstrap node list** - who runs the first few nodes a fresh deployment joins
   through, and how that list itself is discovered and kept current.

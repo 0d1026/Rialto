@@ -22,8 +22,8 @@ operators who've talked to each other; it doesn't answer "how does a brand-new,
 independent facilitator become findable by the wider x402 ecosystem without
 individually introducing itself to every index that might carry it."
 
-That's a lookup problem with a specific shape: *given a key, find who holds the value
-for it, without asking a central party*. That shape has a well-known solution.
+That's a lookup problem with a specific shape: _given a key, find who holds the value
+for it, without asking a central party_. That shape has a well-known solution.
 
 ## Kademlia from first principles
 
@@ -61,7 +61,7 @@ participants.
 
 ### Looking something up: iterative, and fast
 
-To resolve a key, a node asks its closest known contacts for *their* closest known
+To resolve a key, a node asks its closest known contacts for _their_ closest known
 contacts to that key, repeats against whoever's now closest, and stops when a round
 returns nothing closer than what's already been found. Each round roughly halves the
 remaining distance to the target, so this converges in `O(log n)` hops - a
@@ -71,16 +71,16 @@ makes BitTorrent DHT lookups and IPFS content routing fast at real internet scal
 **Worked example**, small enough to check by hand (4-bit space, real deployments use
 160+ bits): target key `K = 1001`, and a node looking it up knows four contacts:
 
-| contact | ID | `K XOR contact` | decimal distance |
-|---|---|---|---|
-| A | `1000` | `0001` | 1 |
-| C | `1011` | `0010` | 2 |
-| D | `0001` | `1000` | 8 |
-| B | `0110` | `1111` | 15 |
+| contact | ID     | `K XOR contact` | decimal distance |
+| ------- | ------ | --------------- | ---------------- |
+| A       | `1000` | `0001`          | 1                |
+| C       | `1011` | `0010`          | 2                |
+| D       | `0001` | `1000`          | 8                |
+| B       | `0110` | `1111`          | 15               |
 
 A is closest (distance 1 - it differs from `K` in only the lowest bit). The lookup
 queries the closest known contacts first; if none holds the value directly, they
-return *their* closest-known contacts to `1001`, which - because they're already near
+return _their_ closest-known contacts to `1001`, which - because they're already near
 the target - typically close the remaining gap in the very next round.
 
 ## The same primitive BitTorrent and IPFS use
@@ -111,7 +111,7 @@ value = {
 
 A new facilitator joins by contacting a small set of well-known bootstrap nodes,
 performing a lookup for its own ID (which simultaneously populates its routing table
-and announces its presence), then storing its own record. Looking up a *specific*
+and announces its presence), then storing its own record. Looking up a _specific_
 peer whose ID is already known is a direct lookup. Discovering peers you don't
 already have an ID for is a different problem than what Kademlia alone solves -
 BitTorrent and IPFS both lean on a secondary rendezvous convention for that; Rialto's
@@ -119,13 +119,13 @@ design would need the same, named here as an open gap rather than assumed solved
 
 ## Why not a full libp2p node
 
-| | libp2p | This proposal's scope |
-|---|---|---|
-| Transport negotiation | TCP, QUIC, WebSocket, WebRTC | One: HTTPS - every facilitator already runs an HTTPS server |
-| Stream multiplexing | Yes | Not needed - discrete request/response, no long-lived streams |
-| NAT traversal / relay | Yes | Not needed - facilitators are operator-run public services, not devices behind a NAT |
-| Pubsub | Yes | Not needed - discover-then-pull is a poll model, not a broadcast one |
-| Kademlia DHT | One module among many | The entire thing needed |
+|                       | libp2p                       | This proposal's scope                                                                |
+| --------------------- | ---------------------------- | ------------------------------------------------------------------------------------ |
+| Transport negotiation | TCP, QUIC, WebSocket, WebRTC | One: HTTPS - every facilitator already runs an HTTPS server                          |
+| Stream multiplexing   | Yes                          | Not needed - discrete request/response, no long-lived streams                        |
+| NAT traversal / relay | Yes                          | Not needed - facilitators are operator-run public services, not devices behind a NAT |
+| Pubsub                | Yes                          | Not needed - discover-then-pull is a poll model, not a broadcast one                 |
+| Kademlia DHT          | One module among many        | The entire thing needed                                                              |
 
 Pulling in a full libp2p stack to get to its one relevant module means adopting its
 whole transport/security/muxer negotiation surface for a narrower problem than the
@@ -140,10 +140,11 @@ this project - the current leaning, not yet a final decision.
 Once a peer's `baseUrl`/`catalogUrl` is resolved - by DHT lookup in this proposal, or
 by manual registration today - fetching its catalog doesn't change: a plain HTTPS
 GET, direct, no intermediary. This is exactly what today's manual ingestion CLI
-already does for external catalogs; the proposal only changes *how the URL is found*,
-never *how it's fetched*.
+already does for external catalogs; the proposal only changes _how the URL is found_,
+never _how it's fetched_.
 
-<Mermaid chart={`flowchart LR
+<Mermaid
+  chart={`flowchart LR
     subgraph today["Today: manual, but already direct"]
         OP["operator runs<br/>the ingest CLI"] --> FETCH1["HTTPS GET<br/>direct to source"]
     end
@@ -154,7 +155,8 @@ never *how it's fetched*.
     FETCH1 --> GAUNTLET["integrity gauntlet<br/>(unchanged)"]
     FETCH2 --> GAUNTLET
     GAUNTLET --> CATALOG[("local catalog,<br/>provenance = ingested")]
-`} />
+`}
+/>
 
 **What "no relay hop" means, precisely**: no third server sits between the requesting
 facilitator and the source, forwarding or rewriting the catalog payload. If a design
@@ -167,8 +169,8 @@ two parties already guarantees the requester receives exactly what the source se
 
 **What doesn't change**: every pulled entry still runs through the same integrity
 gauntlet that validates a live settlement's metadata - unconditionally, regardless of
-provenance. The DHT and the direct pull only change *how a peer is found* and *how
-its catalog is fetched*, never how much that catalog's content is trusted once it
+provenance. The DHT and the direct pull only change _how a peer is found_ and _how
+its catalog is fetched_, never how much that catalog's content is trusted once it
 arrives. A malicious facilitator with a perfectly valid DHT record and a perfectly
 direct HTTPS connection can still only get entries in that pass the same gauntlet
 everything else does.
@@ -178,12 +180,12 @@ everything else does.
 Stellar services stay discoverable across the wider x402 ecosystem without needing a
 gossip network's operational weight, a full libp2p node's dependency surface, or a
 single registry's single point of control - closing the open interop question
-(`stellar/x402-stellar#50`) without installing a new central party in its place.
+[stellar/x402-stellar#50](https://github.com/stellar/x402-stellar/issues/50) without installing a new central party in its place.
 
 ## Threat model, briefly
 
 Full accounting lives in the [threat model](/docs/threat-model) §6. In short: a DHT
-adds Sybil/eclipse-style attack surface against the *lookup* step (a known, studied
+adds Sybil/eclipse-style attack surface against the _lookup_ step (a known, studied
 weakness of vanilla Kademlia, with known mitigation families). It does **not** add any
 new way to get untrusted content trusted - that boundary is the integrity gauntlet,
 and it doesn't move regardless of how a peer was discovered.
