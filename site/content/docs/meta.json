@@ -3,6 +3,7 @@
     "index",
     "architecture",
     "search",
+    "federation",
     "benchmarks",
     "threat-model",
     "scheme-upto-stellar",
