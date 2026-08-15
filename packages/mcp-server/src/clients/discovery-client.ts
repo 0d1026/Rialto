@@ -3,10 +3,13 @@ import { ErrorCode } from "../errors/codes.js";
 import { McpToolError } from "../errors/mcp-tool-error.js";
 import type {
   DiscoveryErrorBody,
+  DiscoveryGetResourceParams,
+  DiscoveryGetResourceResponse,
   DiscoveryResource,
   DiscoverySearchParams,
   DiscoverySearchResponse,
 } from "../types/discovery.js";
+import type { PaymentRequirements } from "../types/payment.js";
 
 export interface ResourceSummary {
   resource: string;
@@ -24,6 +27,25 @@ export interface SearchResult {
   partialResults: boolean;
 }
 
+
+export interface ResourceDetail {
+  resource: string;
+  type: string;
+  name: string;
+  description?: string;
+  tags: string[];
+  toolName?: string;
+  mimeType?: string;
+  routeTemplate?: string;
+  iconUrl?: string;
+  x402Version: number;
+  accepts: PaymentRequirements[];
+  lastUpdated: string;
+  provenance: string;
+  settlementCount: number;
+  extensions?: Record<string, unknown>;
+}
+
 function toSummary(r: DiscoveryResource): ResourceSummary {
   const name = r.serviceName ?? r.toolName ?? r.resource;
   return {
@@ -34,6 +56,27 @@ function toSummary(r: DiscoveryResource): ResourceSummary {
     tags: r.tags ?? [],
     network: r.accepts[0]?.network ?? null,
     settlementCount: r.metadata.settlementCount,
+  };
+}
+
+function toDetail(r: DiscoveryResource): ResourceDetail {
+  const name = r.serviceName ?? r.toolName ?? r.resource;
+  return {
+    resource: r.resource,
+    type: r.type,
+    name,
+    ...(r.description !== undefined ? { description: r.description } : {}),
+    tags: r.tags ?? [],
+    ...(r.toolName !== undefined ? { toolName: r.toolName } : {}),
+    ...(r.mimeType !== undefined ? { mimeType: r.mimeType } : {}),
+    ...(r.routeTemplate !== undefined ? { routeTemplate: r.routeTemplate } : {}),
+    ...(r.iconUrl !== undefined ? { iconUrl: r.iconUrl } : {}),
+    x402Version: r.x402Version,
+    accepts: r.accepts,
+    lastUpdated: r.lastUpdated,
+    provenance: r.metadata.provenance,
+    settlementCount: r.metadata.settlementCount,
+    ...(r.extensions !== undefined ? { extensions: r.extensions } : {}),
   };
 }
 
@@ -106,5 +149,57 @@ export class DiscoveryClient {
       cursor: body.pagination?.cursor ?? null,
       partialResults: body.partialResults,
     };
+  }
+
+  async getResource(params: DiscoveryGetResourceParams): Promise<ResourceDetail> {
+    const url = new URL("/discovery/resource", this.config.DISCOVERY_URL);
+    url.searchParams.set("resource", params.resource);
+    if (params.toolName !== undefined) url.searchParams.set("toolName", params.toolName);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(
+      () => controller.abort(),
+      this.config.RIALTO_SERVICE_TIMEOUT_MS
+    );
+
+    let response: Response;
+    try {
+      response = await fetch(url, { signal: controller.signal });
+    } catch (err) {
+      throw new McpToolError(
+        ErrorCode.DISCOVERY_UNAVAILABLE,
+        `discovery resource request failed: ${err instanceof Error ? err.message : String(err)}`,
+        err
+      );
+    } finally {
+      clearTimeout(timeout);
+    }
+
+    if (response.status === 404) {
+      throw new McpToolError(
+        ErrorCode.DISCOVERY_RESOURCE_NOT_FOUND,
+        `no resource found for "${params.resource}"`
+      );
+    }
+
+    if (!response.ok) {
+      throw new McpToolError(
+        ErrorCode.DISCOVERY_UNAVAILABLE,
+        `discovery resource lookup returned ${response.status}`
+      );
+    }
+
+    let body: DiscoveryGetResourceResponse;
+    try {
+      body = (await response.json()) as DiscoveryGetResourceResponse;
+    } catch (err) {
+      throw new McpToolError(
+        ErrorCode.DISCOVERY_UNAVAILABLE,
+        "discovery resource lookup returned invalid JSON",
+        err
+      );
+    }
+
+    return toDetail(body.item);
   }
 }

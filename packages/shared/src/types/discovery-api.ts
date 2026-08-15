@@ -29,3 +29,14 @@ export interface DiscoverySearchResponse {
   partialResults: boolean;
   pagination: { limit: number; cursor: string | null } | null;
 }
+
+export interface DiscoveryGetResourceQuery {
+  resource: string;
+  /** Disambiguates an MCP resource exposing multiple tools; rows key on (resource, toolName). */
+  toolName?: string;
+}
+
+export interface DiscoveryGetResourceResponse {
+  x402Version: 2;
+  item: unknown;
+}

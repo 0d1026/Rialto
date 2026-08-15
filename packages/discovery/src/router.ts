@@ -1,7 +1,8 @@
 /**
  * The discovery HTTP surface:
  *   GET  /discovery/resources        - spec filters + offset pagination
- *   GET  /discovery/search           - hybrid search (lexical + dense) + cursor pagination
+ *   GET  /discovery/resource         - single resource by (resource, toolName)
+ *   GET  /discovery/search           - lexical v1, opaque cursor, honest partialResults
  *   POST /internal/settlement-events - facilitator's SettlementEvent (not public)
  *   POST /federation/register        - independent facilitators join the index
  *   GET  /federation/peers           - transparency: who is registered
@@ -100,9 +101,27 @@ export function createRouter(
     res.json({ x402Version: 2, items, pagination: { limit, offset, total } });
   });
 
-  router.get("/discovery/search", async (req: Request, res: Response) => {
-    const query =
-      typeof req.query.query === "string" ? req.query.query.trim() : "";
+  router.get('/discovery/resource', async (req: Request, res: Response) => {
+    const resource = typeof req.query.resource === 'string' ? req.query.resource.trim() : '';
+    if (!resource) {
+      res.status(400).json({
+        error: { code: 'payload_invalid', reason: 'resource parameter is required' },
+      });
+      return;
+    }
+    const toolName = typeof req.query.toolName === 'string' ? req.query.toolName : undefined;
+    const item = await catalog.getByResource(resource, toolName);
+    if (!item) {
+      res.status(404).json({
+        error: { code: 'resource_not_found', reason: 'no matching resource' },
+      });
+      return;
+    }
+    res.json({ x402Version: 2, item });
+  });
+
+  router.get('/discovery/search', async (req: Request, res: Response) => {
+    const query = typeof req.query.query === 'string' ? req.query.query.trim() : '';
     if (!query) {
       res.status(400).json({
         error: {

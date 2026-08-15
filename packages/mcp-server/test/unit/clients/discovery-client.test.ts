@@ -10,6 +10,7 @@ const config: Config = {
   FACILITATOR_URL: "http://facilitator.test",
   NETWORK: "stellar:testnet",
   RIALTO_SERVICE_TIMEOUT_MS: 2_000,
+  FACILITATOR_SERVICE_TIMEOUT_MS: 20_000,
   SELLER_REQUEST_TIMEOUT_MS: 10_000,
   MCP_TRANSPORT: "stdio",
 };
@@ -204,6 +205,148 @@ describe("DiscoveryClient.search", () => {
 
     const client = new DiscoveryClient(config);
     await expect(client.search({ query: "weather" })).rejects.toMatchObject({
+      code: ErrorCode.DISCOVERY_UNAVAILABLE,
+    });
+  });
+});
+
+describe("DiscoveryClient.getResource", () => {
+  let fetchMock: ReturnType<typeof vi.fn>;
+
+  beforeEach(() => {
+    fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("maps a discovery resource response to ResourceDetail, exact scheme", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(200, {
+        x402Version: 2,
+        item: resource({
+          serviceName: "Weather API",
+          description: "Hourly forecasts",
+          tags: ["weather"],
+          routeTemplate: "/forecast",
+        }),
+      })
+    );
+
+    const client = new DiscoveryClient(config);
+    const result = await client.getResource({ resource: "https://weather.example/forecast" });
+
+    expect(result).toEqual({
+      resource: "https://weather.example/forecast",
+      type: "http",
+      name: "Weather API",
+      description: "Hourly forecasts",
+      tags: ["weather"],
+      routeTemplate: "/forecast",
+      x402Version: 2,
+      accepts: [
+        {
+          scheme: "exact",
+          network: "stellar:testnet",
+          payTo: "GABC123",
+          asset: "USDC",
+          amount: "1000",
+        },
+      ],
+      lastUpdated: "2026-08-01T00:00:00.000Z",
+      provenance: "observed-settlement",
+      settlementCount: 3,
+    });
+  });
+
+  it("maps an upto-scheme resource, preserving its extra fields", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(200, {
+        x402Version: 2,
+        item: resource({
+          accepts: [
+            {
+              scheme: "upto",
+              network: "stellar:testnet",
+              payTo: "GABC123",
+              asset: "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA",
+              amount: "10000000",
+              maxTimeoutSeconds: 60,
+              extra: {
+                areFeesSponsored: true,
+                settlementContract: "CABCDEF",
+              },
+            },
+          ],
+        }),
+      })
+    );
+
+    const client = new DiscoveryClient(config);
+    const result = await client.getResource({ resource: "https://weather.example/forecast" });
+
+    expect(result.accepts).toEqual([
+      {
+        scheme: "upto",
+        network: "stellar:testnet",
+        payTo: "GABC123",
+        asset: "CBIELTK6YBZJU5UP2WWQEUCYKLPU6AUNZ2BQ4WWFEIE3USCIHMXQDAMA",
+        amount: "10000000",
+        maxTimeoutSeconds: 60,
+        extra: {
+          areFeesSponsored: true,
+          settlementContract: "CABCDEF",
+        },
+      },
+    ]);
+  });
+
+  it("sends resource and toolName as query params", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(200, { x402Version: 2, item: resource() }));
+
+    const client = new DiscoveryClient(config);
+    await client.getResource({ resource: "https://weather.example/forecast", toolName: "get_forecast" });
+
+    const [firstCall] = fetchMock.mock.calls;
+    const requestUrl = new URL(firstCall?.[0] as string | URL);
+    expect(requestUrl.pathname).toBe("/discovery/resource");
+    expect(requestUrl.searchParams.get("resource")).toBe("https://weather.example/forecast");
+    expect(requestUrl.searchParams.get("toolName")).toBe("get_forecast");
+  });
+
+  it("throws DISCOVERY_RESOURCE_NOT_FOUND on a 404 response", async () => {
+    fetchMock.mockResolvedValueOnce(
+      jsonResponse(404, { error: { code: "resource_not_found", reason: "no matching resource" } })
+    );
+
+    const client = new DiscoveryClient(config);
+    await expect(
+      client.getResource({ resource: "https://missing.example/x" })
+    ).rejects.toMatchObject({
+      code: ErrorCode.DISCOVERY_RESOURCE_NOT_FOUND,
+    });
+  });
+
+  it("throws DISCOVERY_UNAVAILABLE on a non-2xx, non-404 response", async () => {
+    fetchMock.mockResolvedValue(new Response("internal error", { status: 503 }));
+
+    const client = new DiscoveryClient(config);
+    await expect(
+      client.getResource({ resource: "https://weather.example/forecast" })
+    ).rejects.toMatchObject({
+      code: ErrorCode.DISCOVERY_UNAVAILABLE,
+    });
+  });
+
+  it("throws DISCOVERY_UNAVAILABLE when the network request itself fails", async () => {
+    fetchMock.mockRejectedValueOnce(new TypeError("fetch failed"));
+
+    const client = new DiscoveryClient(config);
+    await expect(
+      client.getResource({ resource: "https://weather.example/forecast" })
+    ).rejects.toMatchObject({
       code: ErrorCode.DISCOVERY_UNAVAILABLE,
     });
   });
