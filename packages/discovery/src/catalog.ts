@@ -59,6 +59,11 @@ CREATE TABLE IF NOT EXISTS resources (
 );
 CREATE INDEX IF NOT EXISTS resources_search_idx ON resources USING GIN (search_tsv);
 CREATE INDEX IF NOT EXISTS resources_accepts_idx ON resources USING GIN (accepts jsonb_path_ops);
+-- Serves the /discovery/resources listing (ORDER BY last_updated DESC, id DESC
+-- with OFFSET). Without it Postgres seq-scans and sorts the whole table on every
+-- page, which tips deep offsets over the statement timeout once the catalog
+-- grows - a real 500 seen after federation sync pushed the row count past ~19k.
+CREATE INDEX IF NOT EXISTS resources_last_updated_idx ON resources (last_updated DESC, id DESC);
 -- migrations/0001_settlement_count.sql - CREATE TABLE IF NOT EXISTS above only
 -- covers a fresh database; this brings an existing one forward the same way
 -- every other schema change here has been applied, idempotently on connect.
@@ -285,7 +290,7 @@ export class Catalog {
     params.push(f.limit, f.offset);
     const rows = await this.pool.query(
       `SELECT * FROM resources ${where}
-       ORDER BY last_updated DESC
+       ORDER BY last_updated DESC, id DESC
        LIMIT $${params.length - 1} OFFSET $${params.length}`,
       params,
     );
