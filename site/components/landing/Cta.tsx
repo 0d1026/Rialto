@@ -42,7 +42,7 @@ export default function Cta() {
             <a href={REPO_URL} className="rialto-btn rialto-btn--primary">
               View on GitHub ↗
             </a>
-            <a href={`${REPO_URL}/blob/main/docs/architecture.md`} className="rialto-btn rialto-btn--outline">
+            <a href="/docs/architecture" className="rialto-btn rialto-btn--outline">
               Architecture doc
             </a>
           </div>

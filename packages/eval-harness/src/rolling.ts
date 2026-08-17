@@ -77,6 +77,8 @@ export interface RollingResult {
   ndcgAt10: number;
   mrr: number;
   recallAt20: number;
+  /** Sampled entries whose own-metadata query brought them back at rank 1. */
+  recoveredAtRank1: number;
 }
 
 export async function runRolling(): Promise<RollingResult> {
@@ -87,10 +89,12 @@ export async function runRolling(): Promise<RollingResult> {
   const results: Record<string, RankedList> = {};
   const judgments: Record<string, Record<string, Judgment>> = {};
   let i = 0;
+  let recoveredAtRank1 = 0;
   for (const r of sample) {
     const id = `q${i++}`;
     results[id] = await search(queryFor(r)!);
     judgments[id] = { [r.resource]: 1 };
+    if (results[id][0] === r.resource) recoveredAtRank1++;
   }
 
   const agg = scoreConfiguration(results, judgments);
@@ -103,6 +107,7 @@ export async function runRolling(): Promise<RollingResult> {
     ndcgAt10: Number(agg.ndcgAt10.toFixed(4)),
     mrr: Number(agg.mrr.toFixed(4)),
     recallAt20: Number(agg.recallAt20.toFixed(4)),
+    recoveredAtRank1,
   };
 }
 
