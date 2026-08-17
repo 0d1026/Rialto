@@ -134,6 +134,17 @@
   border: 1px solid var(--border);
   background: linear-gradient(160deg, var(--panel) 0%, var(--panel-2) 100%);
   padding: clamp(20px, 3vw, 30px);
+  transition: transform 220ms var(--ease), box-shadow 220ms var(--ease), border-color 220ms var(--ease);
+}
+
+.try-panel:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 40px -20px var(--accent-soft);
+  border-color: var(--border-med);
+}
+
+.try-panel--receipt:hover {
+  border-color: var(--accent-alt-border);
 }
 
 .try-panel--receipt {

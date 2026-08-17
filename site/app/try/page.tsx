@@ -41,8 +41,8 @@ type DemoResult = {
 };
 type Federation = {
   peers: { name: string; base_url: string; catalog_url: string }[];
-  ingestedCount: number;
-  examples: { resource: string; source: string }[];
+  indexSize: number;
+  examples: { resource: string; source: string; peer: string }[];
 };
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -70,7 +70,7 @@ export default function TryPage() {
     fetch('/api/federation')
       .then((r) => r.json())
       .then(setFederation)
-      .catch(() => setFederation({ peers: [], ingestedCount: 0, examples: [] }));
+      .catch(() => setFederation({ peers: [], indexSize: 0, examples: [] }));
   }, []);
 
   async function runSearch(e?: FormEvent) {
@@ -273,67 +273,6 @@ export default function TryPage() {
         </section>
       </Reveal>
 
-      {/* search quality, measured in CI */}
-      <Reveal>
-        <section className="try-section">
-          <div className="try-panel">
-            <div className="try-sq-head">
-              <span className="try-dot" aria-hidden /> Search quality, measured in CI
-            </div>
-            <p className="try-lede" style={{ marginTop: 10 }}>
-              Known-item retrieval scored on a live sample of the catalog. A fixed golden-set
-              regression gate blocks any drop when the ranking code changes, so this is measured,
-              not asserted.
-            </p>
-            <div className="try-metrics">
-              <div className="try-metric">
-                <div className="try-metric__num">{searchQuality.ndcgAt10.toFixed(2)}</div>
-                <div className="try-metric__label">nDCG@10</div>
-              </div>
-              <div className="try-metric">
-                <div className="try-metric__num">{searchQuality.mrr.toFixed(2)}</div>
-                <div className="try-metric__label">MRR</div>
-              </div>
-              <div className="try-metric">
-                <div className="try-metric__num">{searchQuality.recallAt20.toFixed(2)}</div>
-                <div className="try-metric__label">Recall@20</div>
-              </div>
-            </div>
-            <div className="try-sq-meta">
-              {searchQuality.catalogSize.toLocaleString()} services indexed ·{' '}
-              {searchQuality.sampleSize} sampled · known-item upper bound ·{' '}
-              {new Date(searchQuality.generatedAt).toISOString().slice(0, 10)}
-            </div>
-            <div className="try-sq-links">
-              <a
-                className="try-link"
-                href={`${REPO_URL}/actions/workflows/rolling-eval.yml`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Nightly run ↗
-              </a>
-              <a
-                className="try-link"
-                href={`${REPO_URL}/tree/main/packages/eval-harness`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Eval harness ↗
-              </a>
-              <a
-                className="try-link"
-                href={`${REPO_URL}/tree/main/packages/eval-harness/src/fixtures`}
-                target="_blank"
-                rel="noreferrer"
-              >
-                Golden set ↗
-              </a>
-            </div>
-          </div>
-        </section>
-      </Reveal>
-
       {/* one-click demo */}
       <Reveal>
         <section className="try-section">
@@ -452,10 +391,10 @@ export default function TryPage() {
             {federation && (
               <>
                 <div className="try-fed-stat">
-                  <span className="try-fed-stat__num">{federation.ingestedCount}</span>
+                  <span className="try-fed-stat__num">{federation.indexSize.toLocaleString()}</span>
                   <span className="try-fed-stat__text">
-                    listings ingested from an independent catalog, each traceable to the
-                    source it came from
+                    listings in the index, federated from independent catalogs (CDP, GoPlausible,
+                    AlgoVoi), each tagged with the source it came from
                   </span>
                 </div>
 
@@ -503,7 +442,7 @@ export default function TryPage() {
                               rel="noreferrer"
                               className="try-link"
                             >
-                              {federation.peers[0]?.name ?? 'peer'}
+                              {it.peer}
                             </a>
                           </div>
                           <div className="try-fed-item__url">{it.resource}</div>
@@ -514,6 +453,64 @@ export default function TryPage() {
                 )}
               </>
             )}
+          </div>
+        </section>
+      </Reveal>
+
+      {/* search quality, checked in CI — audit footnote, last */}
+      <Reveal>
+        <section className="try-section">
+          <div className="try-panel">
+            <div className="try-sq-head">
+              <span className="try-dot" aria-hidden /> Search quality, checked in CI
+            </div>
+            <p className="try-lede" style={{ marginTop: 10 }}>
+              A known-item sanity check: we sample live listings, query each by its description,
+              and confirm the index returns it. Hard queries are gated separately by a fixed
+              golden set.
+            </p>
+            <div className="try-metrics" style={{ gridTemplateColumns: '1fr' }}>
+              <div className="try-metric">
+                <div className="try-metric__num">
+                  {searchQuality.recoveredAtRank1} / {searchQuality.sampleSize}
+                </div>
+                <div className="try-metric__label">
+                  sampled listings returned at rank 1 (known-item upper bound)
+                </div>
+              </div>
+            </div>
+            <div className="try-sq-meta">
+              {searchQuality.catalogSize.toLocaleString()} listings · federated from independent
+              x402 catalogs (CDP, GoPlausible, AlgoVoi), each tagged with its provenance ·{' '}
+              {searchQuality.sampleSize} sampled ·{' '}
+              {new Date(searchQuality.generatedAt).toISOString().slice(0, 10)}
+            </div>
+            <div className="try-sq-links">
+              <a
+                className="try-link"
+                href={`${REPO_URL}/actions/workflows/rolling-eval.yml`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Nightly run ↗
+              </a>
+              <a
+                className="try-link"
+                href={`${REPO_URL}/tree/main/packages/eval-harness`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Eval harness ↗
+              </a>
+              <a
+                className="try-link"
+                href={`${REPO_URL}/tree/main/packages/eval-harness/src/fixtures`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                Golden set ↗
+              </a>
+            </div>
           </div>
         </section>
       </Reveal>

@@ -6,5 +6,6 @@
   "metric": "known-item-upper-bound",
   "ndcgAt10": 1,
   "mrr": 1,
-  "recallAt20": 1
+  "recallAt20": 1,
+  "recoveredAtRank1": 40
 }
