@@ -50,6 +50,10 @@ export async function hybridSearch(
   const lexical = await rankLexicalCandidates(pool, searchText, {
     type: opts.type,
     network: constraints.network,
+    // Fusion must not see the relaxed OR fallback: a low-confidence union
+    // match can appear in both arms and outrank a confident dense hit (the
+    // q4/q6 paraphrase regression). The standalone BM25 path keeps it.
+    allowRelaxedFallback: false,
   });
 
   let dense: Awaited<ReturnType<typeof denseSearch>> = [];

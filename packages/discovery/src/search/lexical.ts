@@ -80,7 +80,7 @@ async function selectCandidates(
 export async function rankLexicalCandidates(
   pool: pg.Pool,
   query: string,
-  opts: { type?: string; network?: string },
+  opts: { type?: string; network?: string; allowRelaxedFallback?: boolean },
 ): Promise<RankedLexicalCandidate[]> {
   const extraParams: unknown[] = [];
   let extraClause = '';
@@ -106,7 +106,15 @@ export async function rankLexicalCandidates(
   // of the query's words is a candidate. Never runs when the strict
   // attempt already found something, so it can't loosen (or re-rank) a
   // query that was already working.
-  if (candidates.rows.length === 0) {
+  //
+  // The fallback trades precision for recall - right for the standalone BM25
+  // path (default on, keeps 05.search-ranking and bm25-only recall), wrong
+  // inside fusion: a low-confidence union match fed to RRF can appear in both
+  // arms and outrank a confident dense hit, which is exactly what regressed
+  // the paraphrase queries q4/q6 below dense-only. hybrid.ts passes
+  // allowRelaxedFallback: false so fusion never sees these candidates.
+  const allowRelaxedFallback = opts.allowRelaxedFallback ?? true;
+  if (candidates.rows.length === 0 && allowRelaxedFallback) {
     const orQuery = toOrQuery(query);
     if (orQuery) {
       candidates = await selectCandidates(pool, orQuery, query, extraClause, extraParams);
