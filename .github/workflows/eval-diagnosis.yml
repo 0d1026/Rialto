@@ -6,6 +6,12 @@ name: eval diagnosis (per-category)
 # only - this is a diagnosis, not a gate.
 on:
   workflow_dispatch: {}
+  push:
+    branches: [cross-encoder-rerank-eval-ci-gated]
+    paths:
+      - "packages/discovery/src/search/**"
+      - "packages/eval-harness/**"
+      - ".github/workflows/eval-diagnosis.yml"
 
 jobs:
   diagnose:
