@@ -6,6 +6,7 @@
   "license": "Apache-2.0",
   "scripts": {
     "eval": "tsx src/runner.ts",
+    "eval:record": "tsx src/eval-record.ts",
     "rolling": "tsx src/rolling.ts",
     "rolling:record": "tsx src/rolling-record.ts",
     "check-regression": "tsx src/check-regression.ts",

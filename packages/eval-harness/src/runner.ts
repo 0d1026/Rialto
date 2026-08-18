@@ -22,9 +22,9 @@ import {
   type EmbeddingModel,
 } from '@rialto/discovery';
 import { SEED_CATALOG } from './fixtures/seed-catalog.js';
-import { GOLDEN_QUERIES } from './fixtures/golden-queries.js';
+import { GOLDEN_QUERIES, type QueryCategory } from './fixtures/golden-queries.js';
 import { JUDGMENTS } from './fixtures/judgments.js';
-import { scoreConfiguration, type RankedList } from './metrics.js';
+import { scoreConfiguration, type RankedList, type QueryMetrics } from './metrics.js';
 
 const TOP_N = 20; // enough for Recall@20; nDCG@10/MRR use a prefix of this
 
@@ -63,11 +63,21 @@ async function runConfiguration(
   return results;
 }
 
+export interface CategoryMetrics {
+  category: QueryCategory;
+  count: number;
+  ndcgAt10: number;
+  mrr: number;
+  recallAt20: number;
+}
+
 export interface ConfigurationResult {
   label: string;
   ndcgAt10: number;
   mrr: number;
   recallAt20: number;
+  perQuery: QueryMetrics[];
+  perCategory: CategoryMetrics[];
 }
 
 export interface EvalResult {
@@ -90,10 +100,21 @@ export async function runEval(databaseUrl: string): Promise<EvalResult> {
   const denseOnly = await runConfiguration((q) => catalog.denseOnlySearch(model, q, { limit: TOP_N, offset: 0 }));
   const fused = await runConfiguration((q) => catalog.hybridSearch(model, q, { limit: TOP_N, offset: 0 }));
 
+  const score = (results: Record<string, RankedList>): Omit<ConfigurationResult, 'label'> => {
+    const s = scoreConfiguration(results, JUDGMENTS);
+    return {
+      ndcgAt10: s.ndcgAt10,
+      mrr: s.mrr,
+      recallAt20: s.recallAt20,
+      perQuery: s.perQuery,
+      perCategory: rollupByCategory(s.perQuery),
+    };
+  };
+
   const rows: ConfigurationResult[] = [
-    { label: 'bm25-only', ...omitPerQuery(scoreConfiguration(bm25Only, JUDGMENTS)) },
-    { label: 'dense-only', ...omitPerQuery(scoreConfiguration(denseOnly, JUDGMENTS)) },
-    { label: 'fused+settlement', ...omitPerQuery(scoreConfiguration(fused, JUDGMENTS)) },
+    { label: 'bm25-only', ...score(bm25Only) },
+    { label: 'dense-only', ...score(denseOnly) },
+    { label: 'fused+settlement', ...score(fused) },
   ];
 
   await catalog.close();
@@ -107,12 +128,42 @@ export async function runEval(databaseUrl: string): Promise<EvalResult> {
   };
 }
 
-function omitPerQuery(s: { ndcgAt10: number; mrr: number; recallAt20: number }): {
-  ndcgAt10: number;
-  mrr: number;
-  recallAt20: number;
-} {
-  return { ndcgAt10: s.ndcgAt10, mrr: s.mrr, recallAt20: s.recallAt20 };
+/** Groups per-query metrics into per-category means, so the weak categories
+ * (the ones a reranker should target) are visible instead of blended into one
+ * aggregate. Category comes from GOLDEN_QUERIES; a query with no category is
+ * skipped rather than lumped into a bogus bucket. */
+function rollupByCategory(perQuery: QueryMetrics[]): CategoryMetrics[] {
+  const categoryOf = new Map(GOLDEN_QUERIES.map((q) => [q.id, q.category]));
+  const groups = new Map<QueryCategory, QueryMetrics[]>();
+  for (const qm of perQuery) {
+    const category = categoryOf.get(qm.queryId);
+    if (!category) continue;
+    const bucket = groups.get(category) ?? [];
+    bucket.push(qm);
+    groups.set(category, bucket);
+  }
+  const mean = (xs: number[]): number => xs.reduce((s, x) => s + x, 0) / (xs.length || 1);
+  return [...groups.entries()].map(([category, qs]) => ({
+    category,
+    count: qs.length,
+    ndcgAt10: mean(qs.map((q) => q.ndcgAt10)),
+    mrr: mean(qs.map((q) => q.reciprocalRank)),
+    recallAt20: mean(qs.map((q) => q.recallAt20)),
+  }));
+}
+
+export function printCategoryTable(rows: CategoryMetrics[]): void {
+  const fmt = (n: number): string => n.toFixed(3);
+  const widest = Math.max(...rows.map((r) => r.category.length), 'category'.length);
+  const pad = (s: string): string => s.padEnd(widest + 2);
+  console.log(pad('category') + 'n   nDCG@10  MRR      Recall@20');
+  console.log('-'.repeat(widest + 2 + 30));
+  for (const r of rows) {
+    console.log(
+      pad(r.category) +
+        `${String(r.count).padEnd(4)}${fmt(r.ndcgAt10)}    ${fmt(r.mrr)}    ${fmt(r.recallAt20)}`,
+    );
+  }
 }
 
 export function printTable(rows: ConfigurationResult[]): void {
@@ -136,6 +187,11 @@ async function main(): Promise<void> {
 
   console.log('');
   printTable(result.configurations);
+  const fused = result.configurations.find((c) => c.label === 'fused+settlement');
+  if (fused) {
+    console.log('\nfused+settlement, by category (lowest MRR = where a reranker should help):');
+    printCategoryTable(fused.perCategory);
+  }
   console.log('');
   console.log(JSON.stringify(result, null, 2));
 }
