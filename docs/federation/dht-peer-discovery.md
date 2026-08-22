@@ -146,7 +146,12 @@ Rialto's proposal is the same shape one level up: key = a facilitator's node ID.
 Value = `{baseUrl, catalogUrl}` - a pointer, not the catalog. The catalog itself is
 always fetched with a direct HTTPS request to the facilitator the pointer names.
 
-## 4. Rialto's planned DHT record
+## 4. Presence discovery: the planned DHT record
+
+This is the DHT's presence layer: it answers "is this facilitator ID reachable, and
+where." §4.1 below extends the same record shape to answer a related but distinct
+question - "who holds the best answer for this resource" - without a second protocol
+or a second kind of client.
 
 ```
 key   = facilitator node ID   (derivation: open, see ADR 0003 §"What's not decided yet")
@@ -172,6 +177,103 @@ convention for this shape of query (well-known/rendezvous keys, or crawling); Ri
 design would need the same kind of secondary mechanism for "discover facilitators I
 don't already know an ID for" rather than expecting the base protocol to provide it -
 named here as an open design gap, not solved by this document.
+
+### 4.1 Resource-pointer records: the same mechanism, one level down
+
+The record above is keyed by a *facilitator's* node ID - it answers "how do I reach
+this specific facilitator." The same DHT, with no new RPCs and no second protocol,
+can also hold records keyed by a *resource identifier* - the same identifier the
+discovery catalog already indexes services under:
+
+```
+key   = resource identifier   (an existing catalog entry's identifier)
+value = {
+  facilitatorNodeId: string   # who to ask for this resource
+  baseUrl:           string   # that facilitator's HTTPS origin
+}
+```
+
+A lookup for a resource identifier resolves exactly the way a facilitator lookup does
+(§2.4) - iterative FIND_VALUE, terminating in `O(log n)` hops. The only difference
+from §4's record is what the key names; the routing, storage, and lookup mechanics
+underneath are identical. §4.2 describes where these records come from: nobody
+publishes one speculatively - each is a byproduct of a live query that already
+confirmed a facilitator holds a strong answer for that resource.
+
+## 4.2 Query-time fan-out with DHT-backed resource selection
+
+A DHT resolves a known key to a value in bounded hops. It cannot enumerate unknown
+content - there's no way to ask it "everything relevant to X" the way a search index
+can. That's not a shortfall to work around, it's a difference in what problem is being
+solved, and this design uses the right tool for each: the DHT for presence and
+pointer resolution (§4, §4.1), and query-time fan-out for coverage beyond the local
+catalog.
+
+This is not an improvised workaround. Federated and distributed information retrieval
+has solved "which of several independent collections should this query be sent to"
+for decades, under the name **resource selection** (sometimes collection selection):
+a broker receives a query, decides which backend collections are worth querying for
+it, sends the query to those, and merges the results. Meta-search engines and
+distributed enterprise search systems both work this way. What follows is that
+approach, applied to a federation of Bazaar catalogs, with one refinement that fits
+naturally on top of the DHT already described in this document.
+
+### 4.2.1 The base mechanism
+
+1. A search is answered locally first, BM25 plus embeddings against the requesting
+   facilitator's own catalog (`docs/search/lexical-bm25.md`,
+   `docs/search/dense-retrieval.md`), exactly as designed elsewhere in this project.
+   No network round-trip is required for this step.
+2. For broader coverage, the same query is also sent live to the set of peer
+   facilitators already known through presence discovery (§4). Each peer runs the
+   query against its own catalog and returns results.
+3. Results are merged and re-ranked at the querying node, using the same
+   settlement-history and relevance signals used for local results.
+4. The response honestly reflects its own completeness: if fan-out wasn't performed,
+   or if a queried peer didn't respond in time, `partialResults: true` is set - the
+   same field already used elsewhere in this project for any degraded-but-honest
+   result set.
+
+This alone gives real, useful coverage beyond a single node's own catalog, bounded by
+which peers that node has discovered, and paid for only when a query actually asks
+for it, not as constant background traffic.
+
+### 4.2.2 DHT-backed resource selection: the network improves itself over time
+
+Every fan-out query produces information worth keeping: which peer, for a given
+resource or query pattern, actually returned the strongest result. Rather than
+letting that information disappear after one query, it feeds back into the DHT using
+the resource-pointer record from §4.1:
+
+- After a fan-out query resolves, the querying node publishes (or refreshes) a DHT
+  record for the resource identifier that scored best, pointing at the facilitator
+  that hosts it - exactly the `{facilitatorNodeId, baseUrl}` pointer shape defined in
+  §4.1.
+- The next node that needs that same resource identifier can resolve it directly by
+  DHT lookup, no fan-out required, because a previous query already did the work of
+  finding the right peer and left a pointer behind.
+- Fan-out and DHT lookup are not competing strategies - they compose: fan-out is how
+  the network discovers good answers the first time, the DHT is how that discovery is
+  preserved and reused by everyone after. The network's DHT-resolvable coverage grows
+  organically from real query traffic, with no separate crawl, sync, or
+  full-replication step ever required.
+
+This is the property worth naming clearly: coverage is not fixed at design time and
+it is not paid for by constant background replication. It grows as the network is
+used, converging toward broad DHT-resolvable coverage for anything actually being
+searched for, while resources nobody has queried yet simply haven't been indexed into
+the DHT - which is the correct, efficient behavior, not a gap.
+
+### 4.2.3 What this deliberately does not claim
+
+For completeness and consistency with this document's existing standard of honesty
+about tradeoffs (§6, §7): a resource hosted by a facilitator that has never been
+reached by presence discovery, fan-out, or a prior query remains genuinely
+undiscoverable until one of those three finds it. This is the same starting condition
+every federation design has, gossip included - a network can only know what it has,
+directly or transitively, connected to. What §4.2 adds is that once *any* node's
+query surfaces a good result, that discovery is preserved and shared for everyone
+after, rather than being repeated or lost.
 
 ## 5. Why not full libp2p
 
@@ -250,6 +352,16 @@ is a known, studied weakness of vanilla Kademlia with known mitigation families
 **not** add any new way to get untrusted content trusted - that boundary is the
 integrity gauntlet, and it doesn't move.
 
+Resource-pointer records (§4.1) carry the same category of risk as presence records,
+not a new one: a forged pointer can at worst send a fan-out query's follow-up lookup
+to the wrong (or a malicious) facilitator, wasting an HTTP round-trip - it cannot get
+that facilitator's response *trusted* without passing the gauntlet like any other
+pulled entry. The one property worth flagging as new: because resource-pointer
+records are *written* by any querying node based on its own fan-out results (§4.2.2),
+a malicious node can publish false "I hold the best answer for X" pointers about
+itself without needing to forge anyone else's record - the existing record-authenticity
+question (ADR 0003) covers this case too, not a separate one.
+
 ## 8. Status and what a build would need
 
 In rough dependency order, none of it started:
@@ -266,6 +378,15 @@ In rough dependency order, none of it started:
 5. Decide whether `/federation/register` and `/federation/peers` are replaced,
    deprecated, or kept as a manual override alongside DHT-based discovery - not yet
    decided, and reasonable to keep both for a transition period regardless.
-6. Tests - none of the current automated suite covers federation at all today
+6. Query-time fan-out (§4.2.1): send a resolved search to known peers, merge and
+   re-rank results, set `partialResults: true` honestly when fan-out is skipped or a
+   peer doesn't respond in time. This can be built and evaluated independently of the
+   DHT work above - it only needs a peer list, which `/federation/peers` already
+   provides today.
+7. DHT-backed resource selection (§4.2.2): publish a resource-pointer record after a
+   fan-out query resolves. Depends on both #2 (a working DHT client) and #6 (fan-out
+   producing something worth publishing) - the last step in the build order, not the
+   first.
+8. Tests - none of the current automated suite covers federation at all today
    (`docs/documentation-audit.md` §2.7), a gap that predates this proposal and would
    need closing for either the current manual model or this one.

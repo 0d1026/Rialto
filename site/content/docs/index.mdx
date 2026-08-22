@@ -60,8 +60,10 @@ Still design-stage or spec-only, stated plainly:
    [Federation](/docs/federation) page) to replace manual peer registration with the
    same peer-discovery primitive BitTorrent and IPFS use, so a facilitator becomes
    findable ecosystem-wide without registering with any single index. Catalogs would
-   still be pulled directly over HTTPS from the source, no relay hop. Design only -
-   no DHT code exists yet.
+   still be pulled directly over HTTPS from the source, no relay hop. The same DHT
+   would also back query-time fan-out to peers, with resource-level pointers
+   published back in so the network's searchable coverage grows from real query
+   traffic instead of a crawl. Design only - no DHT code exists yet.
 
 ## Where to go next
 

@@ -243,6 +243,14 @@ on the record before it exists rather than retrofitted after:
   get a client to *pull from* a malicious source; it cannot get malicious content
   *trusted* once pulled, any more than a malicious `catalogUrl` typed by hand into
   `pnpm ingest algovoi` could today.
+- **Resource-pointer records** (deep-dive §4.1-§4.2, for the proposed DHT-backed
+  query fan-out) carry the same category of risk as facilitator records, not a new
+  one - a forged pointer wastes a follow-up HTTP round-trip at worst, since the
+  response still has to pass the gauntlet. The one new wrinkle: these records are
+  written by any querying node based on its own fan-out results, so a node can
+  publish false "I hold the best answer for X" claims about itself without needing to
+  forge anyone else's record - covered by the same open record-authenticity question,
+  not a separate one.
 - **What direct-pull removes, not adds**: because a resolved peer's catalog is always
   fetched with a direct HTTPS connection (never through a relay), the DHT proposal
   does **not** introduce an in-transit tampering surface the current manual-pull model

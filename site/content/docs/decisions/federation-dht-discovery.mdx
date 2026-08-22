@@ -76,6 +76,17 @@ Signing a payload only earns its keep when you can't trust the channel it travel
 over; a direct HTTPS connection to the party who authored the data already gives that
 guarantee. A relay is exactly the thing that would reintroduce the need for one.
 
+The same DHT, with the same record shape one level down, also backs a second
+mechanism beyond peer presence: **query-time fan-out with DHT-backed resource
+selection** (see [Federation](/docs/federation) for the mechanism). A search still
+answers from the local catalog first; fan-out additionally sends it live to known
+peers, merges results, and is honest (`partialResults: true`) about anything skipped.
+Whichever peer's answer scores best gets a resource-pointer record published back
+into the DHT, so the next node needing that same resource resolves it by lookup
+instead of repeating the fan-out. This is federated-IR "resource selection," not a
+novel mechanism, and it composes with the presence layer rather than requiring a
+second protocol.
+
 ## Alternatives considered
 
 - **Keep the current self-registration model** - rejected as the long-term answer:
@@ -116,6 +127,10 @@ guarantee. A relay is exactly the thing that would reintroduce the need for one.
   gauntlet validates every ingested entry regardless of how the peer was found, so a
   forged record can at worst point a client at a catalog the gauntlet still filters,
   never at content the gauntlet trusts blindly.
+- Search coverage beyond a single instance's own catalog stops being fixed at design
+  time: DHT-backed resource selection means coverage grows from real query traffic
+  (a resource nobody has searched for simply isn't in the DHT yet, which is correct
+  behavior, not a gap), with no crawl or full-replication step ever required.
 - This is a proposal only, evaluated on paper, not against a running implementation.
   The numbers and tradeoffs above should be revisited once a prototype exists.
 
