@@ -84,5 +84,16 @@
     "mrr": 0.975,
     "recallAt20": 1,
     "recoveredAtRank1": 38
+  },
+  {
+    "generatedAt": "2026-08-23T03:48:25.561Z",
+    "discoveryUrl": "https://rialto-production-97c9.up.railway.app",
+    "catalogSize": 19276,
+    "sampleSize": 40,
+    "metric": "known-item-upper-bound",
+    "ndcgAt10": 0.9908,
+    "mrr": 0.9875,
+    "recallAt20": 1,
+    "recoveredAtRank1": 39
   }
 ]
