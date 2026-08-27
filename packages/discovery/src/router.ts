@@ -211,8 +211,9 @@ export function createRouter(
         event.txHash,
       );
       if (!result.ok) {
+        const status = result.reason === "ownership_conflict" ? 202 : 422;
         res
-          .status(422)
+          .status(status)
           .json({ accepted: true, cataloged: false, reason: result.reason });
         return;
       }

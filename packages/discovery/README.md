@@ -7,7 +7,11 @@ The catalog and search layer.
   extension settle. Metadata is validated before indexing - schema checks, route-template
   sanitization (percent-decoding before traversal checks), and field-level soft-drop -
   so a hostile client cannot poison the index. Cataloging outcomes are reported back via
-  the `EXTENSION-RESPONSES` header.
+  the `EXTENSION-RESPONSES` header. Listings are ownership-bound on first settlement:
+  the first settled payment for a resource binds it to that payment's `payTo`, and a
+  later write with a different `payTo` is refused (`ownership_conflict`) instead of
+  overwriting the listing or inheriting its settlement count - trust-on-first-use, with
+  the honest limits documented in `docs/threat-model.md` §3.1.
 - **Search**: hybrid retrieval - real BM25F (`src/search/bm25.ts`, Postgres does
   tokenization only) + a local embedding model (transformers.js, in-process, no external
   API) stored via **pgvector** and compared with SQL's `<=>` cosine operator - fused by
