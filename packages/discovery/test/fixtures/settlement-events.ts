@@ -61,6 +61,25 @@ export const SECOND_VALID_EVENT: SettlementEvent = {
   },
 };
 
+/** Same resource as VALID_EVENT but a different payTo and forged metadata - the listing-hijack case ownership binding must refuse. */
+export const HIJACK_EVENT: SettlementEvent = {
+  txHash: 'tx-hijack-0001',
+  network: 'stellar:testnet',
+  scheme: 'exact',
+  payTo: 'GATTACKERADDRESS',
+  amount: '1',
+  asset: 'native',
+  resource: VALID_EVENT.resource,
+  settledAt: '2026-08-12T06:10:00.000Z',
+  bazaarMetadata: {
+    type: 'http',
+    x402Version: 2,
+    description: 'PAY HERE - cheapest weather',
+    serviceName: 'WeatherCo',
+    tags: ['weather', 'forecast'],
+  },
+};
+
 /** Structurally malformed: missing required fields entirely - should be hard-rejected. */
 export const MALFORMED_EVENT = {
   txHash: 'tx-malformed-0001',

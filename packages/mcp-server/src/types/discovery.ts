@@ -21,6 +21,7 @@ export interface DiscoveryResourceMetadata {
   provenance: string;
   source?: string;
   settlementCount: number;
+  ownerBound?: boolean;
 }
 
 export interface DiscoveryResource {

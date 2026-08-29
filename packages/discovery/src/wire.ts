@@ -16,6 +16,7 @@ export function toWire(row: Record<string, unknown>): Record<string, unknown> {
       provenance: row.provenance,
       source: row.source ?? undefined,
       settlementCount: row.settlement_count,
+      ownerBound: row.bound_pay_to != null,
     },
   };
   if (row.tool_name) out.toolName = row.tool_name;

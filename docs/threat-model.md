@@ -82,6 +82,39 @@ the identical treatment a live settlement does):
 - Outcomes reported via the response body (`dropped`, `cataloged`) on every ingest
   call, so a seller/facilitator operator can tell whether a listing landed and why not.
 
+### 3.1 payTo displacement (listing hijack) - closed by trust-on-first-use binding
+
+**Threat**: the upsert keys on `(resource, tool_name)` and, before this defense,
+replaced content wholesale on conflict - including `accepts`, and therefore `payTo`.
+An attacker who settled one real dust payment carrying forged metadata for a victim's
+resource URL could overwrite the victim's payment terms with their own payout address
+and inherit the row's accumulated `settlement_count`, which the settlement-history
+tiebreak then rewards. The same displacement worked through federation ingestion
+without paying at all. A closely related defect made it worse: `provenance` was
+first-write-wins while content was last-write-wins, so attacker-supplied content
+could sit under a trusted `observed-settlement` label.
+
+**Mitigation** (`migrations/0004_ownership_binding.sql`, enforced in `catalog.ts`'s
+upsert): the first `observed-settlement` write for a `(resource, tool_name)` binds the
+row to that settlement's `payTo` (`bound_pay_to`, `bound_at`). Once bound, any write
+whose `payTo` does not match is refused from the catalog - reported as
+`ownership_conflict`, with the payment itself unaffected. The check lives in the
+upsert's `ON CONFLICT ... WHERE` clause, so concurrent conflicting writes are
+serialized by the row lock and exactly one first settlement can bind. A settlement
+that claims a previously ingested/registered row also upgrades its provenance to
+`observed-settlement`, closing the mislabel. Rows that have never settled keep
+last-write-wins so federation re-syncs refresh them unchanged. The binding is visible
+on the wire as `metadata.ownerBound`. Regression-tested in
+`test/unit/16.ownership-binding.spec.ts`, including the concurrent mixed-payTo race.
+
+**Limits, stated honestly**: this is trust-on-first-use. It protects the incumbent,
+not first contact - an attacker who settles *first* for a URL they do not control
+binds it, and the legitimate seller then needs the operator rebind path
+(`docs/guides/operator-guide.md`). Verifying a binding against the resource's own
+live 402 response (does the URL itself name this `payTo`?) is the stronger
+complementary check and is a named follow-up, not built today. Legitimate payout
+rotation also requires the operator path; there is no self-service rebind.
+
 **Residual risk, stated honestly**: `iconUrl` validation blocks loopback/IP-literal
 hosts but does not resolve DNS at validation time - a hostname that currently resolves
 to a public IP but is later repointed to an internal address (DNS rebinding) is not

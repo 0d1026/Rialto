@@ -115,7 +115,25 @@ rather than calling a separately-hosted one) is described as a goal in
 `docs/architecture.md` but has no working example in this repo yet - `examples/` is
 still a placeholder. Don't assume this path is exercised or tested; it isn't.
 
-## 5. Monitoring and health
+## 5. Ownership rebinding (operator action)
+
+The first settlement for a resource binds its catalog row to that settlement's
+`payTo` (`docs/threat-model.md` §3.1); later writes with a different `payTo` are
+refused as `ownership_conflict`. There is deliberately no self-service rebind. When
+a seller legitimately rotates payout addresses - or a hijacker bound a URL before
+its real owner's first settlement - clearing the binding is a direct database
+action:
+
+```sql
+UPDATE resources SET bound_pay_to = NULL, bound_at = NULL
+WHERE resource = '<resource url>' AND tool_name = '<tool name, or empty string for HTTP>';
+```
+
+The next settlement for that resource binds it fresh. Verify who you are unbinding
+for out of band before running this - the binding is the defense, and this statement
+removes it for that row.
+
+## 6. Monitoring and health
 
 Both `facilitator` and `discovery` expose `GET /health`. Neither returns anything
 beyond `{"status":"ok"}` (discovery's also includes a live resource count) - there's no

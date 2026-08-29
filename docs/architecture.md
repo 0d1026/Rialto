@@ -146,6 +146,11 @@ submission regardless of provenance, implementing the Bazaar spec's rules:
   concrete URL path used instead
 - field-level soft-drop: an oversized `serviceName`, an invalid tag, a loopback/IP-literal
   `iconUrl` each drop that field alone; only an invalid envelope rejects the entry
+- trust-on-first-use ownership binding: the first settlement for a `(resource, tool_name)`
+  binds the row to that settlement's `payTo`; a later write with a different `payTo` -
+  another settlement or an ingested entry - is refused as `ownership_conflict`, so a
+  hijacker can neither overwrite a seller's payment terms nor inherit its
+  `settlement_count` (`docs/threat-model.md` §3.1; the payment itself is never blocked)
 - outcomes reported via `EXTENSION-RESPONSES`
 
 **Search** (built - ADR 0002, implemented in `packages/discovery/src/search/`): hybrid

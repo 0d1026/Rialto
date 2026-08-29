@@ -7,7 +7,10 @@
  *   ingested            : imported from an external catalog
  *
  * MCP tools are keyed on (resource, toolName) per the Bazaar spec; HTTP
- * resources on (resource, '') - one row per unique key, newest write wins.
+ * resources on (resource, '') - one row per unique key, newest write wins
+ * until the row is ownership-bound: the first observed-settlement write
+ * binds the row to its payTo, and later writes with a different payTo are
+ * refused (migrations/0004_ownership_binding.sql, threat-model §3).
  */
 
 import pg from 'pg';
@@ -63,6 +66,9 @@ CREATE INDEX IF NOT EXISTS resources_accepts_idx ON resources USING GIN (accepts
 -- covers a fresh database; this brings an existing one forward the same way
 -- every other schema change here has been applied, idempotently on connect.
 ALTER TABLE resources ADD COLUMN IF NOT EXISTS settlement_count INTEGER NOT NULL DEFAULT 0;
+-- migrations/0004_ownership_binding.sql
+ALTER TABLE resources ADD COLUMN IF NOT EXISTS bound_pay_to TEXT;
+ALTER TABLE resources ADD COLUMN IF NOT EXISTS bound_at TIMESTAMPTZ;
 CREATE TABLE IF NOT EXISTS federation_peers (
   id BIGSERIAL PRIMARY KEY,
   name TEXT NOT NULL,
@@ -182,12 +188,17 @@ export class Catalog {
     const searchB = e.description ?? '';
     const searchC = e.resource;
     const settlementDelta = provenance === 'observed-settlement' ? 1 : 0;
+    const acceptPayTos = (e.accepts as Array<Record<string, unknown>>)
+      .map((a) => a?.payTo)
+      .filter((p): p is string => typeof p === 'string' && p.length > 0);
+    const bindingPayTo = settlementDelta === 1 ? (acceptPayTos[0] ?? null) : null;
     const inserted = await this.pool.query<{ id: number }>(
       `INSERT INTO resources
         (resource, tool_name, type, x402_version, accepts, description, mime_type,
          service_name, tags, icon_url, route_template, extensions, provenance, source,
-         search_a, search_b, search_c, settlement_count, last_updated)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17, $18, now())
+         search_a, search_b, search_c, settlement_count, last_updated, bound_pay_to, bound_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17, $18, now(),
+         $19, CASE WHEN $19::text IS NULL THEN NULL ELSE now() END)
        ON CONFLICT (resource, tool_name) DO UPDATE SET
          type = EXCLUDED.type,
          x402_version = EXCLUDED.x402_version,
@@ -207,7 +218,13 @@ export class Catalog {
          -- row's lock, so two racing settlements for the same resource each
          -- see the other's committed increment, never lose one.
          settlement_count = resources.settlement_count + $18,
-         last_updated = now()
+         last_updated = now(),
+         provenance = CASE WHEN $19::text IS NOT NULL THEN 'observed-settlement' ELSE resources.provenance END,
+         source = CASE WHEN $19::text IS NOT NULL THEN EXCLUDED.source ELSE resources.source END,
+         bound_pay_to = COALESCE(resources.bound_pay_to, $19),
+         bound_at = CASE WHEN resources.bound_pay_to IS NULL AND $19::text IS NOT NULL THEN now() ELSE resources.bound_at END
+       WHERE resources.bound_pay_to IS NULL
+          OR (cardinality($20::text[]) > 0 AND resources.bound_pay_to = ALL($20::text[]))
        RETURNING id`,
       [
         e.resource,
@@ -228,8 +245,13 @@ export class Catalog {
         searchB,
         searchC,
         settlementDelta,
+        bindingPayTo,
+        acceptPayTos,
       ],
     );
+    if (inserted.rows.length === 0) {
+      return { ok: false, reason: 'ownership_conflict' };
+    }
     const resourceId = inserted.rows[0].id;
     // Embed asynchronously (stage 2): enqueue, don't block cataloging on it.
     // The partial-unique-index conflict target means a resource that
