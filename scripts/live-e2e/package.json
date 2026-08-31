@@ -5,7 +5,8 @@
   "type": "module",
   "description": "End-to-end demo: discover, pay through the facilitator, settle on testnet, observe the catalog update",
   "scripts": {
-    "demo": "node demo.mjs"
+    "demo": "node demo.mjs",
+    "upto-demo": "node upto-demo.mjs"
   },
   "dependencies": {
     "@stellar/stellar-sdk": "^16.2.0",

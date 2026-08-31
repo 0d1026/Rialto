@@ -19,9 +19,12 @@ import { logger, httpLogger } from './utils/logger.js';
 import { codedError, classifyUpstreamError } from './utils/errors.js';
 import { validatePaymentPayload, validatePaymentRequirements } from './utils/validation.js';
 
-export function createApp(): Express {
-  const facilitator = buildFacilitator();
+type FacilitatorApi = Pick<
+  ReturnType<typeof buildFacilitator>,
+  'verify' | 'settle' | 'getSupported'
+>;
 
+export function createApp(facilitator: FacilitatorApi = buildFacilitator()): Express {
   const app: Express = express();
   app.set('trust proxy', proxyAddr.compile(Env.trustProxy));
   app.use(helmet());
@@ -80,7 +83,7 @@ export function createApp(): Express {
         { isValid: response.isValid, invalidReason: response.isValid ? undefined : response.invalidReason },
         'verify response',
       );
-      res.json(response);
+      res.status(response.invalidReason === 'UPTO_ALLOWANCE_REQUIRED' ? 412 : 200).json(response);
     } catch (error) {
       const classified = classifyUpstreamError(error);
       logger.error({ err: error, code: classified.code }, 'verify error');

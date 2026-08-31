@@ -6,3 +6,4 @@ target/
 .agent/
 .gstack/
 .claude
+readway.md
