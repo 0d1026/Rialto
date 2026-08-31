@@ -1,0 +1,17 @@
+FROM node:22-slim
+
+RUN corepack enable && corepack prepare pnpm@10.17.1 --activate
+
+WORKDIR /app
+
+COPY pnpm-workspace.yaml package.json pnpm-lock.yaml ./
+COPY packages/shared/package.json packages/shared/
+COPY packages/facilitator/package.json packages/facilitator/
+COPY packages/discovery/package.json packages/discovery/
+COPY site/package.json site/
+
+RUN pnpm install --frozen-lockfile --prod=false
+
+COPY packages ./packages
+
+CMD ["pnpm", "--dir", "packages/discovery", "exec", "tsx", "src/index.ts"]
