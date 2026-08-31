@@ -5,33 +5,20 @@
  * settlements + dedicated fee-bump signer) activates via config.
  */
 
-import { createEd25519Signer } from '@x402/stellar';
 import { ExactStellarScheme } from '@x402/stellar/exact/facilitator';
 import { Env } from '../config/env.js';
-import { logger } from '../utils/logger.js';
+import { createStellarSigningContext } from './signers.js';
 
-export function createExactScheme(): ExactStellarScheme {
+export function createExactScheme(
+  signing = createStellarSigningContext(),
+): ExactStellarScheme {
   const rpcConfig = { url: Env.stellarRpcUrl };
   const maxTransactionFeeStroops = Env.maxTransactionFeeStroops;
 
-  const useChannels =
-    Env.feeBumpSecret && Env.channelSecrets && Env.channelSecrets.length > 0;
-
-  if (useChannels) {
-    const channelSigners = Env.channelSecrets!.map((s) => createEd25519Signer(s));
-    const feeBumpSigner = createEd25519Signer(Env.feeBumpSecret!);
-    logger.info(
-      { feeBumpAddress: feeBumpSigner.address, channelCount: channelSigners.length },
-      'exact scheme: high-throughput mode (fee-bump signer + channel accounts)',
-    );
-    return new ExactStellarScheme(channelSigners, {
-      feeBumpSigner,
-      rpcConfig,
-      maxTransactionFeeStroops,
-    });
-  }
-
-  const signer = createEd25519Signer(Env.stellarPrivateKey);
-  logger.info({ address: signer.address }, 'exact scheme: single-signer mode');
-  return new ExactStellarScheme([signer], { rpcConfig, maxTransactionFeeStroops });
+  return new ExactStellarScheme(signing.signers, {
+    feeBumpSigner: signing.feeBumpSigner,
+    selectSigner: signing.selectSigner,
+    rpcConfig,
+    maxTransactionFeeStroops,
+  });
 }

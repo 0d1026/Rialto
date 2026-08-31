@@ -111,6 +111,9 @@ importers:
       '@rialto/shared':
         specifier: workspace:*
         version: link:../shared
+      '@stellar/stellar-sdk':
+        specifier: ^16.2.0
+        version: 16.2.0
       '@x402/core':
         specifier: ^2.22.0
         version: 2.22.0
@@ -160,15 +163,24 @@ importers:
       '@types/proxy-addr':
         specifier: ^2.0.3
         version: 2.0.3
+      '@types/supertest':
+        specifier: ^6.0.2
+        version: 6.0.3
       pino-pretty:
         specifier: ^13.0.0
         version: 13.1.3
+      supertest:
+        specifier: ^7.0.0
+        version: 7.2.2
       tsx:
         specifier: ^4.19.0
         version: 4.23.12
       typescript:
         specifier: ^5.7.0
         version: 5.9.3
+      vitest:
+        specifier: ^3.0.0
+        version: 3.2.7(@types/debug@4.1.13)(@types/node@22.20.1)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.23.12)(yaml@2.9.0)
 
   packages/mcp-server:
     dependencies:

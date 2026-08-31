@@ -13,7 +13,7 @@ flowchart LR
         DB[("catalog + embeddings<br/>+ settlement stats")]
     end
     F["facilitator<br/>:4022"] -->|SettlementEvent POST<br/>on every settle| D
-    F -.->|exact scheme<br/>settlement| STELLAR[("Stellar<br/>testnet / pubnet")]
+    F -.->|exact + optional upto<br/>verification / settlement| STELLAR[("Stellar<br/>testnet / pubnet")]
     D["discovery<br/>:4030"] <--> DB
     W["embed-worker<br/>(no port,<br/>polls the queue)"] <--> DB
     CLIENT["agent / buyer"] -->|GET /discovery/search| D
@@ -23,8 +23,10 @@ flowchart LR
 Four independent processes, three of them ship in this repo's `Dockerfile` (multi-stage,
 one target per process) and are wired together in `docker-compose.yml`:
 
-- **`facilitator`** - `/verify`, `/settle`, `/supported`. Talks to Stellar and to
-  discovery's ingest endpoint. Never talks to Postgres directly.
+- **`facilitator`** - `/verify`, `/settle`, `/supported`. Always serves the `exact`
+  Stellar scheme and also serves `upto` when `UPTO_SETTLEMENT_CONTRACT` is configured;
+  `/supported` advertises only the enabled schemes. Talks to Stellar and to discovery's
+  ingest endpoint. Never talks to Postgres directly.
 - **`discovery`** - `/discovery/resources`, `/discovery/search`,
   `/internal/settlement-events`, `/federation/*`. Owns the Postgres connection.
 - **`embed-worker`** - no HTTP surface at all. Polls `embedding_jobs`, writes to
@@ -36,7 +38,11 @@ one target per process) and are wired together in `docker-compose.yml`:
 
 `docker-compose.yml` at the repo root runs all four with one command:
 ```bash
+# exact only
 FACILITATOR_STELLAR_PRIVATE_KEY=S... docker compose up
+
+# exact + upto (use the canonical contract for STELLAR_NETWORK)
+FACILITATOR_STELLAR_PRIVATE_KEY=S... UPTO_SETTLEMENT_CONTRACT=C... docker compose up
 ```
 
 ## 2. Environment variables
@@ -51,6 +57,8 @@ FACILITATOR_STELLAR_PRIVATE_KEY=S... docker compose up
 | `PORT` | | `4022` | |
 | `FACILITATOR_STELLAR_FEE_BUMP_SECRET` + `FACILITATOR_STELLAR_CHANNEL_SECRETS` | | unset | Set **both** together to enable channel-account mode (parallel settlements, no sequence-number collisions). `CHANNEL_SECRETS` is comma-separated. Unset = single-signer mode. |
 | `MAX_TRANSACTION_FEE_STROOPS` | | `200000` | The library's own default (50,000) is below real Soroban resource fees in practice - this is deliberately explicit, not left at the library value. |
+| `UPTO_SETTLEMENT_CONTRACT` | | unset | Enables the Stellar `upto` scheme when set to the canonical `UptoSettlement` C-address for `STELLAR_NETWORK`. Unset preserves exact-only operation. No pubnet address is inferred. |
+| `UPTO_MAX_TRANSACTION_FEE_STROOPS` | | `50000` | Independent safety ceiling for `upto` enforcing simulations and settlement. |
 | `DISCOVERY_INGEST_URL` | | `''` (disabled) | Where `SettlementEvent`s POST after a successful settle. Empty = cataloging silently doesn't happen; settlement is unaffected either way. |
 | `FACILITATOR_API_KEY` | | unset (open) | Optional Bearer token for `/verify`, `/settle`, `/supported`. Unset means those endpoints are open - fine for local/private use, not for a public hosted deployment. |
 | `CORS_ORIGINS` | | `*` | |

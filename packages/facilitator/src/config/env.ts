@@ -32,6 +32,12 @@ export const Env = {
    * testing), so the bound is explicit configuration.
    */
   maxTransactionFeeStroops: Number(process.env.MAX_TRANSACTION_FEE_STROOPS ?? 200_000),
+  /** Optional activation switch and canonical network deployment for `upto`. */
+  uptoSettlementContract: process.env.UPTO_SETTLEMENT_CONTRACT?.trim() || undefined,
+  /** Independent `upto` safety ceiling from the frozen scheme specification. */
+  uptoMaxTransactionFeeStroops: Number(
+    process.env.UPTO_MAX_TRANSACTION_FEE_STROOPS ?? 50_000,
+  ),
   /** Where SettlementEvents are POSTed (Xpan's ingestion). Empty = disabled. */
   discoveryIngestUrl: process.env.DISCOVERY_INGEST_URL ?? '',
   /** Bearer token discovery's ingest endpoint checks; must match its INGEST_TOKEN. */
